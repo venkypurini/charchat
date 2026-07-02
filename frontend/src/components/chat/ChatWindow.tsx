@@ -3,7 +3,7 @@ import { useChatStore } from '../../store/store';
 import { useChat } from '../../hooks/useChat';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
-import { ChevronLeft, MessageSquare, Info, Phone, Video, MoreVertical, PhoneOff, Sparkles, History, BellDot } from 'lucide-react';
+import { ChevronLeft, MessageSquare, Info, Phone, Video, MoreVertical, PhoneOff, Sparkles, History, BellDot, Trash2 } from 'lucide-react';
 import api from '../../api';
 import { AIMemoryModal } from './AIMemoryModal';
 import { ConversationTimeline } from './ConversationTimeline';
@@ -237,8 +237,24 @@ export default function ChatWindow() {
               </button>
             </>
           )}
-          <button className="p-1.5 rounded hover:bg-slate-800 text-slate-300 hover:text-white transition-all cursor-pointer">
-            <MoreVertical className="w-5 h-5" />
+          <button 
+            onClick={async () => {
+              if (window.confirm("Remove this conversation from your active chats list? (The contact remains safe in your Saved Contacts book).")) {
+                try {
+                  if (activeConversationId) {
+                    await api.delete(`/conversations/${activeConversationId}`);
+                    useChatStore.getState().deleteConversation(activeConversationId);
+                    setActiveConversationId(null);
+                  }
+                } catch (err) {
+                  console.error("Failed to delete active chat:", err);
+                }
+              }
+            }}
+            title="Remove Active Chat"
+            className="p-1.5 rounded hover:bg-red-500/20 text-zinc-400 hover:text-red-400 transition-all cursor-pointer"
+          >
+            <Trash2 className="w-5 h-5" />
           </button>
         </div>
       </div>

@@ -636,6 +636,19 @@ export default function Sidebar() {
                                       {conv.unread_count}
                                     </span>
                                   )}
+                                  
+                                  {/* Visible Button to Remove Active Chat */}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setChatToDelete(conv);
+                                    }}
+                                    className="p-1.5 text-zinc-500 hover:text-red-400 rounded-full hover:bg-slate-800/80 transition shrink-0 ml-1"
+                                    title="Remove Active Chat"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
                                 </div>
                               </div>
                             </div>
