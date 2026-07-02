@@ -404,76 +404,93 @@ export default function Sidebar() {
   return (
     <div className="w-full lg:w-96 flex flex-col h-full bg-slate-950 border-r border-slate-900 relative shrink-0">
       
-      {/* CharChat Header */}
-      <div className="bg-slate-900 border-b border-slate-800/80 text-white px-3 sm:px-4 pt-3 sm:pt-4 pb-1 shadow-md">
-        <div className="flex items-center justify-between gap-1 sm:gap-2 mb-3">
-          <h2 className="text-xl font-extrabold tracking-wide text-teal-400 shrink-0">CharChat</h2>
-          <div className="flex items-center gap-1 sm:gap-2.5 overflow-x-auto py-1 pl-1 max-w-full no-scrollbar">
-            <button 
-              onClick={() => setShowContactModal(true)}
-              title="Create New Contact"
-              className="p-1.5 sm:p-1 rounded hover:bg-white/10 text-teal-400 sm:text-zinc-450 hover:text-white transition-colors bg-white/5 sm:bg-transparent shrink-0"
-            >
-              <UserPlus className="w-5 h-5" />
-            </button>
-            <button 
-              onClick={() => setShowGroupModal(true)}
-              title="New Group Chat"
-              className="p-1.5 sm:p-1 rounded hover:bg-white/10 text-zinc-300 sm:text-zinc-450 hover:text-white transition-colors bg-white/5 sm:bg-transparent shrink-0"
-            >
-              <Users className="w-5 h-5" />
-            </button>
+      {/* WhatsApp-Style Clean Header */}
+      <div className="bg-slate-900 border-b border-slate-800/80 text-white px-4 pt-3.5 pb-2.5 shadow-md shrink-0">
+        <div className="flex items-center justify-between gap-2 mb-2.5">
+          <h2 className="text-xl font-bold tracking-wide text-white shrink-0 flex items-center gap-1.5">
+            <span>CharChat</span>
+          </h2>
+          <div className="flex items-center gap-2.5">
             <button 
               onClick={() => setShowSavedContactsModal(true)}
               title="Saved Contacts Book"
-              className="p-1.5 sm:p-1 rounded hover:bg-white/10 text-zinc-300 sm:text-zinc-450 hover:text-teal-400 transition-colors cursor-pointer bg-white/5 sm:bg-transparent shrink-0"
+              className="p-1 rounded hover:bg-white/10 text-zinc-300 hover:text-teal-400 transition-colors cursor-pointer"
             >
               <BookUser className="w-5 h-5" />
             </button>
             <button 
               onClick={toggleTheme}
               title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
-              className="p-1.5 sm:p-1 rounded hover:bg-white/10 text-amber-400 hover:text-amber-300 transition-colors cursor-pointer bg-white/5 sm:bg-transparent shrink-0"
+              className="p-1 rounded hover:bg-white/10 text-amber-400 hover:text-amber-300 transition-colors cursor-pointer"
             >
               {theme === 'dark' ? <Sun className="w-5 h-5 animate-spin-slow" /> : <Moon className="w-5 h-5 text-indigo-400" />}
             </button>
             <button 
               onClick={() => setShowSettingsModal(true)}
               title="Settings"
-              className="p-1.5 sm:p-1 rounded hover:bg-white/10 text-zinc-300 sm:text-zinc-455 hover:text-white transition-colors bg-white/5 sm:bg-transparent shrink-0"
+              className="p-1 rounded hover:bg-white/10 text-zinc-300 hover:text-white transition-colors"
             >
               <Settings className="w-5 h-5" />
             </button>
-            {/* User Profile Avatar Beside Settings Icon */}
+            {/* User Profile Avatar */}
             <img 
               src={user?.avatar_url} 
               alt="My Avatar"
               onClick={() => setShowSettingsModal(true)}
-              className="w-7 h-7 sm:w-6 sm:h-6 rounded-full border-[2.5px] cursor-pointer object-cover transition-all shrink-0 ml-0.5 shadow-md active:scale-95 hover:scale-110" 
-              style={{ borderColor: getUserColor(user), boxShadow: `0 0 10px ${getUserColor(user)}99` }}
+              className="w-7 h-7 rounded-full border-2 cursor-pointer object-cover transition-all shrink-0 shadow-md active:scale-95 hover:scale-110" 
+              style={{ borderColor: getUserColor(user), boxShadow: `0 0 10px ${getUserColor(user)}80` }}
               title="Profile Settings"
             />
           </div>
         </div>
 
-        {/* Tabs (Chats, Calls) */}
-        <div className="flex text-center text-sm font-semibold tracking-wider uppercase mt-2 select-none">
-          <button 
-            onClick={() => setActiveTab('chats')}
-            className={`flex-1 pb-3 relative flex items-center justify-center gap-1.5 cursor-pointer ${activeTab === 'chats' ? 'text-teal-400 border-b-[3px] border-teal-500' : 'text-zinc-400 hover:text-white'}`}
+        {/* Search Bar (Like "Ask Meta AI or Search") */}
+        <div className="relative mb-2.5">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+          <input
+            type="text"
+            placeholder="Ask CharChat AI or Search..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-8 py-2 text-xs text-white border border-slate-800/80 outline-none rounded-full bg-slate-950/90 focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/50 transition-all placeholder-zinc-400 shadow-inner"
+          />
+          {searchQuery && (
+            <button 
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Tabs: ONLY Chats and Calls */}
+        <div className="flex items-center gap-2 py-0.5 select-none">
+          <button
+            onClick={() => { setActiveTab('chats'); setSearchQuery(''); }}
+            className={`flex-1 py-1.5 rounded-full text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+              activeTab === 'chats'
+                ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40 shadow-sm'
+                : 'bg-slate-800/60 text-zinc-400 hover:bg-slate-800 hover:text-white border border-transparent'
+            }`}
           >
-            <span>CHATS</span>
+            <span>Chats</span>
             {totalUnreadCount > 0 && (
-              <span className="w-5 h-5 flex items-center justify-center text-[10px] font-bold text-slate-950 bg-teal-400 rounded-full leading-none">
+              <span className="px-1.5 py-0.2 text-[10px] bg-teal-400 text-slate-950 font-extrabold rounded-full">
                 {totalUnreadCount}
               </span>
             )}
           </button>
-          <button 
+
+          <button
             onClick={() => setActiveTab('calls')}
-            className={`flex-1 pb-3 cursor-pointer ${activeTab === 'calls' ? 'text-teal-400 border-b-[3px] border-teal-500' : 'text-zinc-400 hover:text-white'}`}
+            className={`flex-1 py-1.5 rounded-full text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
+              activeTab === 'calls'
+                ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40 shadow-sm'
+                : 'bg-slate-800/60 text-zinc-400 hover:bg-slate-800 hover:text-white border border-transparent'
+            }`}
           >
-            CALLS
+            <span>Calls</span>
           </button>
         </div>
       </div>
@@ -482,27 +499,6 @@ export default function Sidebar() {
       <div className="flex-1 overflow-y-auto bg-slate-950 flex flex-col">
         {activeTab === 'chats' && (
           <>
-            {/* Search Input inside Chats */}
-            <div className="p-3 bg-slate-900/40 border-b border-slate-900/60">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-550" />
-                <input
-                  type="text"
-                  placeholder="Search or start new chat..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-1.5 text-xs text-white border border-slate-800 outline-none rounded-full bg-slate-950/80 focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/50 transition-all placeholder-zinc-550 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]"
-                />
-                {searchQuery && (
-                  <button 
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            </div>
 
             {/* Conversation List / Search Results */}
             <div className="flex-1">
@@ -679,14 +675,49 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/* Floating Action Button (FAB) at Bottom Right */}
-      <button 
-        onClick={() => setShowContactModal(true)}
-        className="absolute bottom-6 right-6 w-14 h-14 bg-teal-500 rounded-full flex items-center justify-center text-slate-950 fab-shadow transition-transform hover:scale-105 hover:bg-teal-650 shrink-0 cursor-pointer z-10"
-        title="Create New Contact"
-      >
-        <MessageCircle className="w-6 h-6" />
-      </button>
+      {/* WhatsApp-Style Floating Action Buttons (FAB) */}
+      <div className="absolute bottom-20 right-5 lg:bottom-6 lg:right-6 z-25 flex flex-col items-end gap-3 pointer-events-none">
+        {/* Smaller Floating Group Chat Button */}
+        <button 
+          onClick={() => setShowGroupModal(true)}
+          className="w-11 h-11 bg-slate-800 hover:bg-slate-700 text-teal-400 rounded-xl flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer pointer-events-auto border border-slate-700"
+          title="New Group Chat"
+        >
+          <Users className="w-5 h-5" />
+        </button>
+
+        {/* Big Green WhatsApp-Style FAB for Create New Contact */}
+        <button 
+          onClick={() => setShowContactModal(true)}
+          className="w-14 h-14 bg-teal-500 hover:bg-teal-400 text-slate-950 rounded-2xl flex items-center justify-center shadow-[0_6px_25px_rgba(20,184,166,0.6)] transition-all hover:scale-105 active:scale-95 cursor-pointer pointer-events-auto"
+          title="Create New Contact"
+        >
+          <UserPlus className="w-7 h-7 stroke-[2.5]" />
+        </button>
+      </div>
+
+      {/* WhatsApp-Style Bottom Navigation Bar (Mobile & Tablet): ONLY Chats and Calls */}
+      <div className="lg:hidden flex items-center justify-around py-2 px-6 bg-slate-900/95 border-t border-slate-800/80 backdrop-blur-md shrink-0 select-none z-20">
+        <button
+          onClick={() => setActiveTab('chats')}
+          className={`flex-1 flex flex-col items-center gap-0.5 cursor-pointer ${activeTab === 'chats' ? 'text-teal-400 font-bold' : 'text-zinc-400 hover:text-white'}`}
+        >
+          <div className={`px-6 py-1 rounded-full transition ${activeTab === 'chats' ? 'bg-teal-500/20' : ''}`}>
+            <MessageSquare className="w-5 h-5" />
+          </div>
+          <span className="text-[10px]">Chats</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('calls')}
+          className={`flex-1 flex flex-col items-center gap-0.5 cursor-pointer ${activeTab === 'calls' ? 'text-teal-400 font-bold' : 'text-zinc-400 hover:text-white'}`}
+        >
+          <div className={`px-6 py-1 rounded-full transition ${activeTab === 'calls' ? 'bg-teal-500/20' : ''}`}>
+            <Phone className="w-5 h-5" />
+          </div>
+          <span className="text-[10px]">Calls</span>
+        </button>
+      </div>
 
       {/* Create Contact Modal */}
       {showContactModal && (
