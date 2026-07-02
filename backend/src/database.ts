@@ -112,5 +112,12 @@ export async function getDb(): Promise<Database> {
   await db.exec("ALTER TABLE messages ADD COLUMN interactive_type TEXT DEFAULT NULL;").catch(() => {});
   await db.exec("ALTER TABLE messages ADD COLUMN interactive_data TEXT DEFAULT NULL;").catch(() => {});
 
+  // Clean up test call logs, saved contacts, and empty chats without any sent messages
+  await db.exec(`
+    DELETE FROM call_logs;
+    DELETE FROM saved_contacts;
+    DELETE FROM conversations WHERE id NOT IN (SELECT DISTINCT conversation_id FROM messages);
+  `).catch(() => {});
+
   return db;
 }

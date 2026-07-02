@@ -237,5 +237,23 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Clear all history (call logs, saved contacts, and conversations) for current user
+router.delete('/reset-history', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const currentUserId = req.user?.id;
+  if (!currentUserId) return res.status(401).json({ error: 'Unauthorized' });
+
+  try {
+    const db = await getDb();
+    await db.run('DELETE FROM call_logs WHERE caller_id = ? OR receiver_id = ?', [currentUserId, currentUserId]);
+    await db.run('DELETE FROM saved_contacts WHERE user_id = ? OR contact_user_id = ?', [currentUserId, currentUserId]);
+    await db.run('DELETE FROM conversation_members WHERE user_id = ?', [currentUserId]);
+    await db.run('DELETE FROM messages WHERE sender_id = ?', [currentUserId]);
+    return res.json({ success: true, message: 'All call logs, saved contacts, and chats cleared successfully.' });
+  } catch (error) {
+    console.error('Reset history error:', error);
+    return res.status(500).json({ error: 'Failed to reset history' });
+  }
+});
+
 export { generateInitialsAvatar };
 export default router;

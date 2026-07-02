@@ -216,6 +216,22 @@ export default function Sidebar() {
     }
   };
 
+  const handleClearAllHistory = async () => {
+    if (!window.confirm("Are you sure you want to remove all your chats, call history, and saved contacts? This action cannot be undone.")) {
+      return;
+    }
+    try {
+      await api.delete('/auth/reset-history');
+      setSavedContactsList([]);
+      useChatStore.getState().setConversations([]);
+      useChatStore.getState().setCalls([]);
+      useChatStore.getState().setActiveConversationId(null);
+      setShowSettingsModal(false);
+    } catch (err) {
+      console.error('Failed to clear history:', err);
+    }
+  };
+
   const formatCallTime = (timestamp: number) => {
     const date = new Date(timestamp);
     const today = new Date();
@@ -384,10 +400,11 @@ export default function Sidebar() {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Only show active chats (with at least one message or currently open)
+  // Only show active chats where a message has actually been sent or received!
+  // Simply saving a contact or opening an empty chat will NOT add it to active chats until a msg is sent.
   const activeChatsList = useMemo(() => {
-    return conversations.filter(c => c.last_message || c.id === activeConversationId);
-  }, [conversations, activeConversationId]);
+    return conversations.filter(c => c.last_message !== null && c.last_message !== undefined);
+  }, [conversations]);
 
   // Filter saved contacts locally when user searches
   const filteredSavedContacts = useMemo(() => {
@@ -1026,6 +1043,15 @@ export default function Sidebar() {
               </button>
 
               <hr className="border-slate-800 my-4" />
+
+              {/* Clear All History Button */}
+              <button
+                onClick={handleClearAllHistory}
+                type="button"
+                className="w-full py-2.5 rounded-md border border-amber-800 bg-amber-950/30 hover:bg-amber-950/60 text-amber-400 font-bold text-xs tracking-wider transition cursor-pointer flex items-center justify-center gap-2 mb-2"
+              >
+                🗑️ CLEAR ALL CHATS, CALL LOGS & SAVED CONTACTS
+              </button>
 
               {/* Log Out */}
               <button
