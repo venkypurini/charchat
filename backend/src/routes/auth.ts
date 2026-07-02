@@ -112,6 +112,41 @@ router.post('/send-otp', async (req, res) => {
         console.error('Twilio error:', smsErr?.message || smsErr);
       }
     }
+    // 3. Try Green API (WhatsApp - 300 Free Messages/Month Forever)
+    else if (process.env.GREEN_API_ID && process.env.GREEN_API_TOKEN) {
+      try {
+        const countryCode = process.env.DEFAULT_COUNTRY_CODE || '91';
+        const cleanMobile = mobile.replace(/[^0-9]/g, '');
+        const whatsappNumber = cleanMobile.length === 10 ? `${countryCode}${cleanMobile}` : cleanMobile;
+        const apiUrl = `https://api.greenapi.com/waInstance${process.env.GREEN_API_ID}/sendMessage/${process.env.GREEN_API_TOKEN}`;
+        await axios.post(apiUrl, {
+          chatId: `${whatsappNumber}@c.us`,
+          message: `🔒 Your CharChat verification code is: *${otp}*\n\nValid for 5 minutes. Do not share this code.`
+        });
+        smsSent = true;
+        smsProvider = 'WhatsApp (Green API)';
+        console.log(`[REAL WHATSAPP] Sent Green API OTP ${otp} to ${whatsappNumber}`);
+      } catch (waErr: any) {
+        console.error('Green API WhatsApp error:', waErr?.response?.data || waErr.message);
+      }
+    }
+    // 4. Try UltraMsg (WhatsApp Gateway)
+    else if (process.env.ULTRAMSG_INSTANCE_ID && process.env.ULTRAMSG_TOKEN) {
+      try {
+        const countryCode = process.env.DEFAULT_COUNTRY_CODE || '+91';
+        const formattedMobile = mobile.startsWith('+') ? mobile : `${countryCode}${mobile}`;
+        await axios.post(`https://api.ultramsg.com/${process.env.ULTRAMSG_INSTANCE_ID}/messages/chat`, {
+          token: process.env.ULTRAMSG_TOKEN,
+          to: formattedMobile,
+          body: `🔒 Your CharChat verification code is: *${otp}*\n\nValid for 5 minutes. Do not share this code.`
+        });
+        smsSent = true;
+        smsProvider = 'WhatsApp (UltraMsg)';
+        console.log(`[REAL WHATSAPP] Sent UltraMsg OTP ${otp} to ${formattedMobile}`);
+      } catch (waErr: any) {
+        console.error('UltraMsg WhatsApp error:', waErr?.response?.data || waErr.message);
+      }
+    }
 
     if (!smsSent) {
       console.log(`[MOCK SMS] Sent OTP ${otp} to mobile ${mobile}`);

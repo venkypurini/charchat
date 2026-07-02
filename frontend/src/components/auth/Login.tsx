@@ -91,11 +91,11 @@ export default function Login() {
             <MessageSquare className={`w-5 h-5 ${smsSent ? 'text-green-400' : 'text-teal-400'} shrink-0 mt-0.5`} />
             <div>
               <h4 className={`font-bold text-xs ${smsSent ? 'text-green-400' : 'text-teal-400'} tracking-wider`}>
-                {smsSent ? `📲 REAL SMS SENT (${smsProvider})` : 'MOCK SMS GATEWAY'}
+                {smsSent ? (smsProvider.includes('WhatsApp') ? `💬 REAL WHATSAPP SENT (${smsProvider})` : `📲 REAL SMS SENT (${smsProvider})`) : 'MOCK SMS GATEWAY'}
               </h4>
               <p className="text-[11px] text-gray-300 mt-1 leading-normal">
                 {smsSent 
-                  ? `An actual text message code was sent to ${mobile}.` 
+                  ? (smsProvider.includes('WhatsApp') ? `A WhatsApp message code was sent to ${mobile}.` : `An actual text message code was sent to ${mobile}.`)
                   : 'Your CharChat verification code is:'}
               </p>
               <div className="mt-1.5 flex items-center gap-2">
