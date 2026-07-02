@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useChatStore, Conversation, User } from '../../store/store';
 import { useChat } from '../../hooks/useChat';
-import { LogOut, Search, MessageSquare, Users, Plus, X, Check, Loader2, Phone, Video, MessageCircle, UserPlus, AlertCircle, Settings, BookUser, Trash2 } from 'lucide-react';
+import { LogOut, Search, MessageSquare, Users, Plus, X, Check, Loader2, Phone, Video, MessageCircle, UserPlus, AlertCircle, Settings, BookUser, Trash2, Sun, Moon } from 'lucide-react';
 import api from '../../api';
 
 const AVATAR_COLORS = [
@@ -16,7 +16,7 @@ const AVATAR_COLORS = [
 ];
 
 export default function Sidebar() {
-  const { user, conversations, activeConversationId, onlineUsers, typingUsers, socketConnected, logout, setActiveConversationId, calls, setCalls, deleteConversation } = useChatStore();
+  const { user, conversations, activeConversationId, onlineUsers, typingUsers, socketConnected, logout, setActiveConversationId, calls, setCalls, deleteConversation, theme, toggleTheme } = useChatStore();
   const { loadConversations, createConversation, createConversationByMobile } = useChat();
 
   const [activeTab, setActiveTab] = useState<'chats' | 'calls'>('chats');
@@ -429,6 +429,13 @@ export default function Sidebar() {
               className="p-1 rounded hover:bg-white/10 text-zinc-450 hover:text-teal-400 transition-colors cursor-pointer"
             >
               <BookUser className="w-5 h-5" />
+            </button>
+            <button 
+              onClick={toggleTheme}
+              title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              className="p-1 rounded hover:bg-white/10 text-amber-400 hover:text-amber-300 transition-colors cursor-pointer"
+            >
+              {theme === 'dark' ? <Sun className="w-5 h-5 animate-spin-slow" /> : <Moon className="w-5 h-5 text-indigo-400" />}
             </button>
             <button 
               onClick={() => setShowSettingsModal(true)}

@@ -1,7 +1,8 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { Loader2 } from 'lucide-react';
+import { useChatStore } from './store/store';
 
 const Login = lazy(() => import('./components/auth/Login'));
 const ChatDashboard = lazy(() => import('./components/chat/ChatDashboard'));
@@ -18,6 +19,16 @@ function PageLoader() {
 }
 
 function App() {
+  const theme = useChatStore(s => s.theme);
+
+  useEffect(() => {
+    if (theme === 'light') {
+      document.documentElement.classList.add('light-mode');
+    } else {
+      document.documentElement.classList.remove('light-mode');
+    }
+  }, [theme]);
+
   return (
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>

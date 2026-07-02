@@ -47,3 +47,125 @@ body {
 .fab-shadow:hover {
   box-shadow: 0 6px 16px rgba(20, 184, 166, 0.4);
 }
+
+/* =========================================================
+   LIGHT MODE THEME OVERRIDES (Stunning Clean WhatsApp Vibe)
+   ========================================================= */
+html.light-mode body, .light-mode {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+/* Container Backgrounds */
+.light-mode .bg-slate-950,
+.light-mode .bg-slate-900,
+.light-mode .bg-\[\#090d16\],
+.light-mode .bg-\[\#0b0f19\],
+.light-mode .bg-zinc-950,
+.light-mode .bg-zinc-900,
+.light-mode .bg-zinc-900\/90,
+.light-mode .bg-zinc-900\/95,
+.light-mode .bg-zinc-900\/50,
+.light-mode .bg-slate-900\/80,
+.light-mode .bg-slate-900\/90,
+.light-mode .bg-slate-900\/95,
+.light-mode .bg-slate-900\/50,
+.light-mode .bg-slate-800\/50,
+.light-mode .bg-slate-800\/90,
+.light-mode .bg-slate-800\/80,
+.light-mode .bg-black\/40,
+.light-mode .bg-black\/50,
+.light-mode .bg-black\/60,
+.light-mode .bg-black\/70,
+.light-mode .bg-black\/80 {
+  background-color: #ffffff !important;
+}
+
+.light-mode .bg-slate-800,
+.light-mode .bg-slate-800\/60,
+.light-mode .bg-zinc-800,
+.light-mode .bg-zinc-800\/50,
+.light-mode .bg-zinc-800\/80,
+.light-mode .bg-zinc-800\/90,
+.light-mode .bg-slate-700\/50 {
+  background-color: #f1f5f9 !important;
+}
+
+/* Chat Backdrop */
+.light-mode .chitchat-bg-pattern {
+  background-color: #efeae2 !important;
+  background-image: 
+    radial-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 0), 
+    radial-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 0) !important;
+}
+
+/* Typography & Text Colors */
+.light-mode .text-white,
+.light-mode .text-slate-100,
+.light-mode .text-slate-200,
+.light-mode .text-zinc-100,
+.light-mode .text-zinc-200 {
+  color: #0f172a !important;
+}
+
+.light-mode .text-slate-300,
+.light-mode .text-slate-400,
+.light-mode .text-zinc-300,
+.light-mode .text-zinc-400,
+.light-mode .text-zinc-450,
+.light-mode .text-zinc-455 {
+  color: #475569 !important;
+}
+
+/* Border Colors */
+.light-mode .border-slate-800,
+.light-mode .border-slate-800\/80,
+.light-mode .border-slate-800\/50,
+.light-mode .border-slate-700,
+.light-mode .border-slate-700\/50,
+.light-mode .border-zinc-800,
+.light-mode .border-zinc-800\/50,
+.light-mode .border-zinc-800\/80,
+.light-mode .border-zinc-700,
+.light-mode .border-zinc-700\/50,
+.light-mode .border-white\/10,
+.light-mode .border-white\/5 {
+  border-color: #e2e8f0 !important;
+}
+
+/* Form inputs & interactive elements */
+.light-mode input,
+.light-mode textarea,
+.light-mode select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+.light-mode .hover\:bg-white\/10:hover,
+.light-mode .hover\:bg-white\/5:hover,
+.light-mode .hover\:bg-slate-800:hover,
+.light-mode .hover\:bg-zinc-800:hover {
+  background-color: #e2e8f0 !important;
+}
+
+/* Sent message bubble (Stays vibrant green/teal with white text) */
+.light-mode .from-teal-800\/80,
+.light-mode .from-teal-800,
+.light-mode .from-teal-900\/90 {
+  background-image: linear-gradient(to bottom right, #008069, #075e54) !important;
+}
+.light-mode .from-teal-800\/80 .text-white,
+.light-mode .from-teal-800 .text-white {
+  color: #ffffff !important;
+}
+
+/* Received message bubble (Crisp white card) */
+.light-mode .from-zinc-800\/90,
+.light-mode .from-zinc-800,
+.light-mode .from-slate-800\/90 {
+  background-image: linear-gradient(to bottom right, #ffffff, #f8fafc) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+  border: 1px solid #e2e8f0 !important;
+}
+

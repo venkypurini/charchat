@@ -99,9 +99,12 @@ interface ChatState {
   deleteConversation: (id: string) => void;
   setPreferredLanguage: (lang: string) => void;
   setSmartSilentMode: (enabled: boolean) => void;
+  theme: 'dark' | 'light';
+  toggleTheme: () => void;
+  setTheme: (theme: 'dark' | 'light') => void;
 }
 
-export const useChatStore = create<ChatState>((set) => ({
+export const useChatStore = create<ChatState>((set, get) => ({
   user: JSON.parse(localStorage.getItem('chat_user') || 'null'),
   token: localStorage.getItem('chat_token'),
   conversations: [],
@@ -114,6 +117,28 @@ export const useChatStore = create<ChatState>((set) => ({
   calls: [],
   preferredLanguage: localStorage.getItem('chat_pref_lang') || 'en',
   smartSilentMode: localStorage.getItem('chat_smart_silent') === 'true',
+  theme: (localStorage.getItem('chat_theme') as 'dark' | 'light') || 'dark',
+
+  toggleTheme: () => {
+    const next = get().theme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('chat_theme', next);
+    if (next === 'light') {
+      document.documentElement.classList.add('light-mode');
+    } else {
+      document.documentElement.classList.remove('light-mode');
+    }
+    set({ theme: next });
+  },
+
+  setTheme: (theme) => {
+    localStorage.setItem('chat_theme', theme);
+    if (theme === 'light') {
+      document.documentElement.classList.add('light-mode');
+    } else {
+      document.documentElement.classList.remove('light-mode');
+    }
+    set({ theme });
+  },
 
   setUser: (user, token) => {
     if (user && token) {
