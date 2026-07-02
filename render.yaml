@@ -3,8 +3,10 @@ services:
     name: charchat-app
     env: node
     plan: free
-    buildCommand: cd backend && npm install && npm run build && cd ../frontend && npm install && npm run build
-    startCommand: node backend/dist/server.js
+    buildCommand: npm run build
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: 20.12.0
