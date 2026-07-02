@@ -251,16 +251,16 @@ export default function Sidebar() {
 
   // Search now filters savedContactsList locally without calling backend for unknown users
 
-  // Load all users when group modal opens
+  // Load only SAVED CONTACTS when group modal opens (no unknown contacts!)
   useEffect(() => {
     if (showGroupModal) {
       setLoadingGroupUsers(true);
-      api.get('/users')
+      api.get('/contacts')
         .then(res => {
           setAvailableUsers(res.data);
         })
         .catch(err => {
-          console.error('Failed to fetch users for group:', err);
+          console.error('Failed to fetch contacts for group:', err);
         })
         .finally(() => {
           setLoadingGroupUsers(false);
@@ -286,6 +286,13 @@ export default function Sidebar() {
     try {
       await api.delete(`/contacts/${contactId}`);
       setSavedContactsList(prev => prev.filter(c => c.id !== contactId && c.saved_contact_id !== contactId));
+      
+      // Also delete any active chat/conversation with this contact so it deletes everywhere!
+      const convToDelete = conversations.find(c => !c.is_group && c.members.some(m => m.id === contactId));
+      if (convToDelete) {
+        await api.delete(`/conversations/${convToDelete.id}`).catch(() => {});
+        deleteConversation(convToDelete.id);
+      }
     } catch (err) {
       console.error('Failed to delete saved contact:', err);
     }
@@ -556,7 +563,6 @@ export default function Sidebar() {
                   {/* Active Conversations */}
                   {activeChatsList.length > 0 ? (
                     <div className="flex flex-col border-b border-slate-900">
-                      <h4 className="px-3.5 py-2 text-[10px] font-bold text-teal-400 uppercase tracking-wider bg-slate-900/30 border-b border-slate-900 select-none">Active Chats</h4>
                       <div className="divide-y divide-slate-950">
                         {activeChatsList.map((conv) => {
                           const { title, avatar, isOnline } = getConversationDetails(conv);
@@ -863,8 +869,8 @@ export default function Sidebar() {
                           className="flex items-center justify-between p-2 hover:bg-slate-800 rounded-md cursor-pointer transition"
                         >
                           <div className="flex items-center gap-2">
-                            <img src={item.avatar_url} alt={item.username} className="w-8 h-8 rounded-full bg-slate-800" />
-                            <span className="text-sm text-white font-medium">{item.username}</span>
+                            <img src={item.avatar_url || `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(item.id)}`} alt={(item as any).custom_name || item.username} className="w-8 h-8 rounded-full bg-slate-800" />
+                            <span className="text-sm text-white font-medium">{(item as any).custom_name || item.username}</span>
                           </div>
                           <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${isSelected ? 'bg-teal-500 border-teal-500 text-slate-950' : 'border-zinc-550 bg-transparent'}`}>
                             {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
