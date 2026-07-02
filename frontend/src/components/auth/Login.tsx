@@ -29,13 +29,14 @@ export default function Login() {
   const handleGetOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !mobile.trim()) {
-      setError('Please enter both username and mobile number');
+      setError('Please enter both username and your mobile number or email');
       return;
     }
 
-    const mobileRegex = /^[0-9]{10}$/;
-    if (!mobileRegex.test(mobile)) {
-      setError('Mobile number must be exactly 10 digits');
+    const isPhone = /^[0-9]{10}$/.test(mobile.trim());
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mobile.trim());
+    if (!isPhone && !isEmail) {
+      setError('Please enter a valid 10-digit mobile number or email address');
       return;
     }
 
@@ -91,11 +92,11 @@ export default function Login() {
             <MessageSquare className={`w-5 h-5 ${smsSent ? 'text-green-400' : 'text-teal-400'} shrink-0 mt-0.5`} />
             <div>
               <h4 className={`font-bold text-xs ${smsSent ? 'text-green-400' : 'text-teal-400'} tracking-wider`}>
-                {smsSent ? (smsProvider.includes('WhatsApp') ? `💬 REAL WHATSAPP SENT (${smsProvider})` : `📲 REAL SMS SENT (${smsProvider})`) : 'MOCK SMS GATEWAY'}
+                {smsSent ? (smsProvider.includes('WhatsApp') ? `💬 REAL WHATSAPP SENT (${smsProvider})` : smsProvider.includes('Email') ? `📧 REAL EMAIL SENT (${smsProvider})` : `📲 REAL SMS SENT (${smsProvider})`) : smsProvider.includes('Email') ? '📧 MOCK EMAIL GATEWAY' : '📲 MOCK SMS GATEWAY'}
               </h4>
               <p className="text-[11px] text-gray-300 mt-1 leading-normal">
                 {smsSent 
-                  ? (smsProvider.includes('WhatsApp') ? `A WhatsApp message code was sent to ${mobile}.` : `An actual text message code was sent to ${mobile}.`)
+                  ? (smsProvider.includes('WhatsApp') ? `A WhatsApp message code was sent to ${mobile}.` : smsProvider.includes('Email') ? `An actual email verification code was sent to ${mobile}.` : `An actual text message code was sent to ${mobile}.`)
                   : 'Your CharChat verification code is:'}
               </p>
               <div className="mt-1.5 flex items-center gap-2">
@@ -160,14 +161,14 @@ export default function Login() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-teal-400 uppercase tracking-wider">Mobile Number (10 digits)</label>
+              <label className="text-[11px] font-bold text-teal-400 uppercase tracking-wider">Mobile Number or Email Address</label>
               <div className="relative">
                 <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-450" />
                 <input
-                  type="tel"
+                  type="text"
                   value={mobile}
-                  onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  placeholder="e.g. 9876543210"
+                  onChange={(e) => setMobile(e.target.value.trim())}
+                  placeholder="e.g. 9876543210 or name@gmail.com"
                   className="w-full pl-10 pr-4 py-2.5 rounded-md border border-slate-800 bg-slate-950/80 text-white outline-none text-sm placeholder-zinc-500 focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/50 transition-all"
                   disabled={loading}
                   required

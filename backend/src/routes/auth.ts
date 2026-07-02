@@ -2,11 +2,74 @@ import { Router, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import axios from 'axios';
+import nodemailer from 'nodemailer';
 import { getDb } from '../database';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_chat_jwt_key_2026';
+
+async function sendEmailOtp(email: string, otp: string): Promise<boolean> {
+  // 1. Try Resend API (Free 3,000 emails/month, super popular)
+  if (process.env.RESEND_API_KEY) {
+    try {
+      await axios.post('https://api.resend.com/emails', {
+        from: process.env.EMAIL_FROM || 'CharChat <onboarding@resend.dev>',
+        to: email,
+        subject: `🔒 ${otp} is your CharChat verification code`,
+        html: `<div style="font-family: 'Inter', Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #0f172a; color: #f8fafc; padding: 28px; border-radius: 16px; border: 1px solid #1e293b;"><h2 style="color: #2dd4bf; margin-top: 0;">CharChat Login Verification</h2><p style="color: #cbd5e1; font-size: 14px;">Here is your secure 6-digit verification code:</p><div style="font-size: 30px; font-weight: 800; letter-spacing: 6px; color: #2dd4bf; background: #1e293b; padding: 12px 24px; border-radius: 10px; display: inline-block; font-family: monospace; border: 1px solid #334155;">${otp}</div><p style="color: #64748b; font-size: 12px; margin-top: 20px;">Valid for exactly 5 minutes. Do not share this code with anyone.</p></div>`
+      }, {
+        headers: {
+          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      console.log(`[REAL EMAIL] Sent Resend OTP ${otp} to ${email}`);
+      return true;
+    } catch (err: any) {
+      console.error('Resend email error:', err?.response?.data || err.message);
+    }
+  }
+
+  // 2. Try Nodemailer / SMTP / Gmail
+  if (process.env.SMTP_USER || process.env.SMTP_HOST || process.env.GMAIL_USER) {
+    try {
+      let transporter;
+      if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+        transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: process.env.GMAIL_USER,
+            pass: process.env.GMAIL_APP_PASSWORD
+          }
+        });
+      } else {
+        transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST || 'smtp.gmail.com',
+          port: Number(process.env.SMTP_PORT) || 587,
+          secure: process.env.SMTP_SECURE === 'true',
+          auth: {
+            user: process.env.SMTP_USER || '',
+            pass: process.env.SMTP_PASS || ''
+          }
+        });
+      }
+
+      await transporter.sendMail({
+        from: process.env.EMAIL_FROM || '"CharChat Security" <no-reply@charchat.com>',
+        to: email,
+        subject: `🔒 ${otp} is your CharChat verification code`,
+        html: `<div style="font-family: 'Inter', Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #0f172a; color: #f8fafc; padding: 28px; border-radius: 16px; border: 1px solid #1e293b;"><h2 style="color: #2dd4bf; margin-top: 0;">CharChat Login Verification</h2><p style="color: #cbd5e1; font-size: 14px;">Here is your secure 6-digit verification code:</p><div style="font-size: 30px; font-weight: 800; letter-spacing: 6px; color: #2dd4bf; background: #1e293b; padding: 12px 24px; border-radius: 10px; display: inline-block; font-family: monospace; border: 1px solid #334155;">${otp}</div><p style="color: #64748b; font-size: 12px; margin-top: 20px;">Valid for exactly 5 minutes. Do not share this code with anyone.</p></div>`
+      });
+      console.log(`[REAL EMAIL] Sent SMTP OTP ${otp} to ${email}`);
+      return true;
+    } catch (err: any) {
+      console.error('SMTP email error:', err?.message || err);
+    }
+  }
+
+  return false;
+}
 
 // Helper to generate a initials avatar as a Data URI
 function generateInitialsAvatar(username: string, bgColor?: string): string {
@@ -42,12 +105,14 @@ router.post('/send-otp', async (req, res) => {
   const { username, mobile } = req.body;
 
   if (!username || !mobile) {
-    return res.status(400).json({ error: 'Username and 10-digit mobile number are required' });
+    return res.status(400).json({ error: 'Username and mobile number / email are required' });
   }
 
-  const mobileRegex = /^[0-9]{10}$/;
-  if (!mobileRegex.test(mobile)) {
-    return res.status(400).json({ error: 'Mobile number must be exactly 10 digits' });
+  const isPhone = /^[0-9]{10}$/.test(mobile.trim());
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mobile.trim());
+
+  if (!isPhone && !isEmail) {
+    return res.status(400).json({ error: 'Please enter a valid 10-digit mobile number or email address' });
   }
 
   try {
@@ -56,12 +121,12 @@ router.post('/send-otp', async (req, res) => {
     // Check for username or mobile conflicts
     const userByUsername = await db.get('SELECT mobile FROM users WHERE username = ?', [username]);
     if (userByUsername && userByUsername.mobile !== mobile) {
-      return res.status(400).json({ error: 'Username is already registered with a different mobile number' });
+      return res.status(400).json({ error: 'Username is already registered with a different identifier' });
     }
 
     const userByMobile = await db.get('SELECT username FROM users WHERE mobile = ?', [mobile]);
     if (userByMobile && userByMobile.username !== username) {
-      return res.status(400).json({ error: 'Mobile number is already registered with a different username' });
+      return res.status(400).json({ error: 'This identifier is already registered with a different username' });
     }
 
     // Generate 6-digit OTP code
@@ -75,8 +140,16 @@ router.post('/send-otp', async (req, res) => {
     );
 
     let smsSent = false;
-    let smsProvider = 'Mock SMS Gateway (Free Mode)';
+    let smsProvider = isEmail ? 'Mock Email Gateway' : 'Mock SMS Gateway (Free Mode)';
 
+    // 0. If input is an Email Address, send Real Email OTP!
+    if (isEmail) {
+      const emailSent = await sendEmailOtp(mobile.trim(), otp);
+      if (emailSent) {
+        smsSent = true;
+        smsProvider = 'Email Inbox';
+      }
+    }
     // 1. Try Fast2SMS (Popular & Affordable in India/Asia)
     if (process.env.FAST2SMS_API_KEY) {
       try {

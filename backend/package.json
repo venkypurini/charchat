@@ -20,6 +20,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^9.0.3",
     "socket.io": "^4.7.5",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
@@ -27,6 +28,7 @@
     "typescript": "^5.4.5"
   },
   "devDependencies": {
+    "@types/nodemailer": "^8.0.1",
     "ts-node-dev": "^2.0.0"
   }
 }
