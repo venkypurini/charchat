@@ -11,6 +11,8 @@ export default function Login() {
   const [step, setStep] = useState<1 | 2>(1); // Step 1: Username/Mobile, Step 2: Enter OTP
   
   const [mockOtp, setMockOtp] = useState<string | null>(null);
+  const [smsSent, setSmsSent] = useState<boolean>(false);
+  const [smsProvider, setSmsProvider] = useState<string>('Mock SMS Gateway');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -43,6 +45,8 @@ export default function Login() {
       const response = await api.post('/auth/send-otp', { username, mobile });
       if (response.data.success) {
         setMockOtp(response.data.otp);
+        setSmsSent(response.data.smsSent || false);
+        setSmsProvider(response.data.smsProvider || 'Mock SMS Gateway');
         setStep(2);
       }
     } catch (err: any) {
@@ -80,21 +84,29 @@ export default function Login() {
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl z-0"></div>
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl z-0"></div>
 
-      {/* Mock SMS Gateway Alert Toast */}
-      {mockOtp && step === 2 && (
+      {/* SMS Gateway Alert Toast */}
+      {step === 2 && (
         <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4">
-          <div className="bg-slate-900/90 text-white rounded-xl p-4 shadow-2xl border border-teal-500/40 flex items-start gap-3.5 backdrop-blur-md animate-bounce">
-            <MessageSquare className="w-5 h-5 text-teal-400 shrink-0 mt-0.5" />
+          <div className={`bg-slate-900/90 text-white rounded-xl p-4 shadow-2xl border ${smsSent ? 'border-green-500/40' : 'border-teal-500/40'} flex items-start gap-3.5 backdrop-blur-md animate-bounce`}>
+            <MessageSquare className={`w-5 h-5 ${smsSent ? 'text-green-400' : 'text-teal-400'} shrink-0 mt-0.5`} />
             <div>
-              <h4 className="font-bold text-xs text-teal-400 tracking-wider">MOCK SMS GATEWAY</h4>
+              <h4 className={`font-bold text-xs ${smsSent ? 'text-green-400' : 'text-teal-400'} tracking-wider`}>
+                {smsSent ? `📲 REAL SMS SENT (${smsProvider})` : 'MOCK SMS GATEWAY'}
+              </h4>
               <p className="text-[11px] text-gray-300 mt-1 leading-normal">
-                Your CharChat verification code is:
+                {smsSent 
+                  ? `An actual text message code was sent to ${mobile}.` 
+                  : 'Your CharChat verification code is:'}
               </p>
               <div className="mt-1.5 flex items-center gap-2">
-                <span className="text-white text-base font-extrabold tracking-widest bg-teal-500/20 px-2.5 py-1 rounded font-mono border border-teal-500/30">
-                  {mockOtp}
+                {mockOtp && (
+                  <span className="text-white text-base font-extrabold tracking-widest bg-teal-500/20 px-2.5 py-1 rounded font-mono border border-teal-500/30">
+                    {mockOtp}
+                  </span>
+                )}
+                <span className={`text-[10px] ${smsSent ? 'text-green-400 bg-green-500/10 border-green-500/20' : 'text-teal-400 bg-teal-500/10 border-teal-500/20'} font-bold border py-0.5 px-1.5 rounded uppercase`}>
+                  {smsSent ? 'Live SMS' : 'Code Sent'}
                 </span>
-                <span className="text-[10px] text-teal-400 font-bold bg-teal-500/10 border border-teal-500/20 py-0.5 px-1.5 rounded uppercase">Code Sent</span>
               </div>
             </div>
           </div>

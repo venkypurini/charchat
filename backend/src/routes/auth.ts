@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import axios from 'axios';
 import { getDb } from '../database';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 
@@ -73,12 +74,55 @@ router.post('/send-otp', async (req, res) => {
       [mobile, otp, expiresAt]
     );
 
-    console.log(`[MOCK SMS] Sent OTP ${otp} to mobile ${mobile}`);
+    let smsSent = false;
+    let smsProvider = 'Mock SMS Gateway (Free Mode)';
+
+    // 1. Try Fast2SMS (Popular & Affordable in India/Asia)
+    if (process.env.FAST2SMS_API_KEY) {
+      try {
+        await axios.get('https://www.fast2sms.com/dev/bulkV2', {
+          params: {
+            authorization: process.env.FAST2SMS_API_KEY,
+            variables_values: otp,
+            route: 'otp',
+            numbers: mobile
+          }
+        });
+        smsSent = true;
+        smsProvider = 'Fast2SMS';
+        console.log(`[REAL SMS] Sent Fast2SMS OTP ${otp} to ${mobile}`);
+      } catch (smsErr: any) {
+        console.error('Fast2SMS error:', smsErr?.response?.data || smsErr.message);
+      }
+    }
+    // 2. Try Twilio (Global SMS Standard)
+    else if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
+      try {
+        const twilioClient = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+        const formattedMobile = mobile.startsWith('+') ? mobile : (process.env.DEFAULT_COUNTRY_CODE || '+91') + mobile;
+        await twilioClient.messages.create({
+          body: `Your CharChat verification code is: ${otp}. Valid for 5 minutes. Do not share this code.`,
+          from: process.env.TWILIO_PHONE_NUMBER,
+          to: formattedMobile
+        });
+        smsSent = true;
+        smsProvider = 'Twilio';
+        console.log(`[REAL SMS] Sent Twilio OTP ${otp} to ${formattedMobile}`);
+      } catch (smsErr: any) {
+        console.error('Twilio error:', smsErr?.message || smsErr);
+      }
+    }
+
+    if (!smsSent) {
+      console.log(`[MOCK SMS] Sent OTP ${otp} to mobile ${mobile}`);
+    }
 
     return res.json({ 
       success: true, 
-      message: `Mock OTP sent to ${mobile}`, 
-      otp
+      message: smsSent ? `Real SMS verification code sent via ${smsProvider}` : `Verification code sent to ${mobile}`, 
+      otp,
+      smsSent,
+      smsProvider
     });
   } catch (error) {
     console.error('Send OTP error:', error);
