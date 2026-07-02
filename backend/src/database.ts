@@ -33,11 +33,21 @@ export async function getDb(): Promise<Database> {
       id TEXT PRIMARY KEY,
       username TEXT UNIQUE NOT NULL,
       mobile TEXT UNIQUE NOT NULL,
+      email TEXT UNIQUE,
       avatar_url TEXT,
       avatar_color TEXT DEFAULT '#128C7E',
       status TEXT DEFAULT 'offline',
       last_seen INTEGER NOT NULL
     );
+  `);
+
+  try {
+    await db.exec('ALTER TABLE users ADD COLUMN email TEXT UNIQUE;');
+  } catch (e) {
+    // Column already exists, ignore
+  }
+
+  await db.exec(`
 
     CREATE TABLE IF NOT EXISTS conversations (
       id TEXT PRIMARY KEY,

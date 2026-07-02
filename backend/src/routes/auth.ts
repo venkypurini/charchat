@@ -118,15 +118,15 @@ router.post('/send-otp', async (req, res) => {
   try {
     const db = await getDb();
 
-    // Check for username or mobile conflicts
-    const userByUsername = await db.get('SELECT mobile FROM users WHERE username = ?', [username]);
-    if (userByUsername && userByUsername.mobile !== mobile) {
-      return res.status(400).json({ error: 'Username is already registered with a different identifier' });
+    // Check for username or mobile/email conflicts (Strict 1-to-1 rule)
+    const userByUsername = await db.get('SELECT mobile, email FROM users WHERE username = ?', [username]);
+    if (userByUsername && userByUsername.mobile !== mobile && userByUsername.email !== mobile) {
+      return res.status(400).json({ error: `Username "${username}" is already linked to a different mobile/email. One user can only log in with their 1 attached mobile number and 1 attached email!` });
     }
 
-    const userByMobile = await db.get('SELECT username FROM users WHERE mobile = ?', [mobile]);
-    if (userByMobile && userByMobile.username !== username) {
-      return res.status(400).json({ error: 'This identifier is already registered with a different username' });
+    const userByIdentifier = await db.get('SELECT username FROM users WHERE mobile = ? OR email = ?', [mobile, mobile]);
+    if (userByIdentifier && userByIdentifier.username !== username) {
+      return res.status(400).json({ error: `This mobile/email is already linked to username "${userByIdentifier.username}". One mobile number can only be linked to 1 single account!` });
     }
 
     // Generate 6-digit OTP code
@@ -266,8 +266,9 @@ router.post('/verify-otp', async (req, res) => {
     // OTP is valid
     await db.run('DELETE FROM otps WHERE mobile = ?', [mobile]);
 
-    // Check if user exists
-    let user = await db.get('SELECT * FROM users WHERE mobile = ?', [mobile]);
+    // Check if user exists (by mobile or email)
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mobile.trim());
+    let user = await db.get('SELECT * FROM users WHERE mobile = ? OR email = ?', [mobile, mobile]);
     const timestamp = Date.now();
 
     if (!user) {
@@ -276,19 +277,25 @@ router.post('/verify-otp', async (req, res) => {
       const defaultAvatar = generateInitialsAvatar(username, defaultColor);
 
       await db.run(
-        'INSERT INTO users (id, username, mobile, avatar_url, avatar_color, status, last_seen) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [userId, username, mobile, defaultAvatar, defaultColor, 'offline', timestamp]
+        'INSERT INTO users (id, username, mobile, email, avatar_url, avatar_color, status, last_seen) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [userId, username, mobile, isEmail ? mobile : null, defaultAvatar, defaultColor, 'offline', timestamp]
       );
 
       user = {
         id: userId,
         username,
         mobile,
+        email: isEmail ? mobile : null,
         avatar_url: defaultAvatar,
         avatar_color: defaultColor,
         status: 'offline',
         last_seen: timestamp
       };
+    } else {
+      if (isEmail && !user.email) {
+        await db.run('UPDATE users SET email = ? WHERE id = ?', [mobile, user.id]);
+        user.email = mobile;
+      }
     }
 
     // Sign JWT token
