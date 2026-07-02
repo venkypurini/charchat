@@ -1,0 +1,25 @@
+import React from 'react';
+import Sidebar from './Sidebar';
+import ChatWindow from './ChatWindow';
+import { useSocket } from '../../hooks/useSocket';
+import { useChatStore } from '../../store/store';
+
+export default function ChatDashboard() {
+  // Activate real-time socket connection for authenticated user session
+  useSocket();
+  const activeConversationId = useChatStore((state) => state.activeConversationId);
+
+  return (
+    <div className="flex h-screen w-screen bg-darkBg text-slate-100 overflow-hidden font-sans">
+      {/* Sidebar: Show full-width on mobile when no conversation is active */}
+      <div className={`${activeConversationId ? 'hidden md:flex' : 'flex'} w-full md:w-auto h-full shrink-0`}>
+        <Sidebar />
+      </div>
+
+      {/* Chat Window: Show full-width on mobile when conversation is active */}
+      <div className={`${activeConversationId ? 'flex' : 'hidden md:flex'} flex-1 h-full min-w-0`}>
+        <ChatWindow />
+      </div>
+    </div>
+  );
+}
