@@ -321,160 +321,163 @@ export default function MessageInput({ onSend, onTypingStart, onTypingStop }: Me
         <Smile className="w-6 h-6" />
       </button>
 
-      {/* Gallery / Media Button (Photos & Videos) */}
-      <button
-        type="button"
-        onClick={() => galleryInputRef.current?.click()}
-        disabled={processing}
-        className="p-2 rounded-full transition text-slate-400 hover:text-teal-400 hover:bg-slate-800 shrink-0 cursor-pointer disabled:opacity-50"
-        title="Gallery (Photos & Videos)"
-      >
-        {processing ? <Loader2 className="w-6 h-6 animate-spin text-teal-400" /> : <ImageIcon className="w-6 h-6" />}
-      </button>
-
-      {/* Documents Button (Any file extension) */}
-      <button
-        type="button"
-        onClick={() => docInputRef.current?.click()}
-        disabled={processing}
-        className="p-2 rounded-full transition text-slate-400 hover:text-amber-400 hover:bg-slate-800 shrink-0 cursor-pointer disabled:opacity-50 hidden sm:block"
-        title="Send Document (.pdf, .docx, etc.)"
-      >
-        {processing ? <Loader2 className="w-6 h-6 animate-spin text-amber-400" /> : <FileText className="w-6 h-6" />}
-      </button>
-
-      {/* Time Capsule Button */}
-      <button
-        type="button"
-        onClick={() => setShowTimeCapsule(true)}
-        className="p-2 rounded-full transition text-slate-400 hover:text-purple-400 hover:bg-slate-800 shrink-0 cursor-pointer"
-        title="Lock a Time Capsule Message"
-      >
-        <Clock className="w-5 h-5" />
-      </button>
-
-      {/* Interactive Game Button */}
-      <button
-        type="button"
-        onClick={() => setShowInteractiveGame(true)}
-        className="p-2 rounded-full transition text-slate-400 hover:text-pink-400 hover:bg-slate-800 shrink-0 cursor-pointer"
-        title="Send Interactive Game / Scratch Card"
-      >
-        <Gift className="w-5 h-5" />
-      </button>
-
-      {/* Mood Picker Button */}
-      <div className="relative shrink-0">
+      {/* Scrollable Action Tray for Mobile */}
+      <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar max-w-[130px] xs:max-w-[170px] sm:max-w-none shrink-0 py-0.5 pl-0.5">
+        {/* Gallery / Media Button (Photos & Videos) */}
         <button
           type="button"
-          onClick={() => {
-            setShowMoodPicker(!showMoodPicker);
-            setShowLangPicker(false);
-          }}
-          className={`px-2.5 py-1.5 rounded-full text-xs font-semibold border transition flex items-center gap-1 cursor-pointer ${
-            selectedMood
-              ? 'bg-gradient-to-r from-amber-500/20 to-pink-500/20 border-amber-500/40 text-amber-300'
-              : 'bg-slate-800/80 border-slate-700 text-zinc-400 hover:text-white'
-          }`}
-          title="Attach Mood / Emotion"
+          onClick={() => galleryInputRef.current?.click()}
+          disabled={processing}
+          className="p-1.5 sm:p-2 rounded-full transition text-slate-400 hover:text-teal-400 hover:bg-slate-800 shrink-0 cursor-pointer disabled:opacity-50"
+          title="Gallery (Photos & Videos)"
         >
-          <span>{selectedMood || '😊 Mood'}</span>
+          {processing ? <Loader2 className="w-5 h-5 animate-spin text-teal-400" /> : <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6" />}
         </button>
 
-        {showMoodPicker && (
-          <div className="absolute bottom-12 right-0 z-40 bg-slate-900 border border-slate-700 rounded-xl p-2.5 shadow-2xl flex flex-wrap gap-1.5 w-48 animate-in fade-in">
-            {[
-              { emoji: '😊', label: 'Happy' },
-              { emoji: '❤️', label: 'Love' },
-              { emoji: '🔥', label: 'Excited' },
-              { emoji: '😔', label: 'Sad' },
-              { emoji: '😰', label: 'Stressed' },
-              { emoji: '🎉', label: 'Party' },
-              { emoji: '😴', label: 'Sleepy' },
-              { emoji: '😠', label: 'Angry' },
-            ].map((m) => (
-              <button
-                key={m.label}
-                type="button"
-                onClick={() => {
-                  setSelectedMood(selectedMood === `${m.emoji} ${m.label}` ? null : `${m.emoji} ${m.label}`);
-                  setShowMoodPicker(false);
-                }}
-                className={`px-2 py-1 rounded-lg text-xs flex items-center gap-1 transition ${
-                  selectedMood === `${m.emoji} ${m.label}`
-                    ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
-                    : 'hover:bg-slate-800 text-zinc-300'
-                }`}
-              >
-                <span>{m.emoji}</span>
-                <span>{m.label}</span>
-              </button>
-            ))}
-            {selectedMood && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedMood(null);
-                  setShowMoodPicker(false);
-                }}
-                className="w-full text-center text-[10px] text-red-400 hover:underline pt-1 border-t border-slate-800 mt-1"
-              >
-                Clear Mood
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Translation Selector Button */}
-      <div className="relative shrink-0 hidden md:block">
+        {/* Documents Button (Any file extension) */}
         <button
           type="button"
-          onClick={() => {
-            setShowLangPicker(!showLangPicker);
-            setShowMoodPicker(false);
-          }}
-          className={`p-2 rounded-full transition cursor-pointer flex items-center gap-1 text-xs font-bold ${
-            preferredLanguage !== 'en'
-              ? 'text-cyan-400 bg-cyan-950/40 border border-cyan-800/60 px-2.5'
-              : 'text-slate-400 hover:text-cyan-400 hover:bg-slate-800'
-          }`}
-          title={`Live Translation: ${preferredLanguage.toUpperCase()}`}
+          onClick={() => docInputRef.current?.click()}
+          disabled={processing}
+          className="p-1.5 sm:p-2 rounded-full transition text-slate-400 hover:text-amber-400 hover:bg-slate-800 shrink-0 cursor-pointer disabled:opacity-50 hidden sm:block"
+          title="Send Document (.pdf, .docx, etc.)"
         >
-          <Globe className="w-4.5 h-4.5" />
-          {preferredLanguage !== 'en' && <span>{preferredLanguage.toUpperCase()}</span>}
+          {processing ? <Loader2 className="w-5 h-5 animate-spin text-amber-400" /> : <FileText className="w-5 h-5 sm:w-6 sm:h-6" />}
         </button>
 
-        {showLangPicker && (
-          <div className="absolute bottom-12 right-0 z-40 bg-slate-900 border border-slate-700 rounded-xl p-2.5 shadow-2xl flex flex-col gap-1 w-36 animate-in fade-in">
-            <span className="text-[10px] font-bold text-zinc-500 px-2 uppercase">Translate incoming to:</span>
-            {[
-              { code: 'en', name: 'Original (No trans)' },
-              { code: 'hi', name: '🇮🇳 Hindi (हिन्दी)' },
-              { code: 'es', name: '🇪🇸 Spanish' },
-              { code: 'fr', name: '🇫🇷 French' },
-              { code: 'ar', name: '🇸🇦 Arabic' },
-              { code: 'de', name: '🇩🇪 German' },
-              { code: 'ja', name: '🇯🇵 Japanese' },
-            ].map((lang) => (
-              <button
-                key={lang.code}
-                type="button"
-                onClick={() => {
-                  setPreferredLanguage(lang.code);
-                  setShowLangPicker(false);
-                }}
-                className={`px-2 py-1 rounded-md text-xs text-left transition flex items-center justify-between ${
-                  preferredLanguage === lang.code
-                    ? 'bg-cyan-500/20 text-cyan-300 font-bold'
-                    : 'hover:bg-slate-800 text-zinc-300'
-                }`}
-              >
-                <span>{lang.name}</span>
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Time Capsule Button */}
+        <button
+          type="button"
+          onClick={() => setShowTimeCapsule(true)}
+          className="p-1.5 sm:p-2 rounded-full transition text-slate-400 hover:text-purple-400 hover:bg-slate-800 shrink-0 cursor-pointer"
+          title="Lock a Time Capsule Message"
+        >
+          <Clock className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+        </button>
+
+        {/* Interactive Game Button */}
+        <button
+          type="button"
+          onClick={() => setShowInteractiveGame(true)}
+          className="p-1.5 sm:p-2 rounded-full transition text-slate-400 hover:text-pink-400 hover:bg-slate-800 shrink-0 cursor-pointer"
+          title="Send Interactive Game / Scratch Card"
+        >
+          <Gift className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+        </button>
+
+        {/* Mood Picker Button */}
+        <div className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              setShowMoodPicker(!showMoodPicker);
+              setShowLangPicker(false);
+            }}
+            className={`px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold border transition flex items-center gap-1 cursor-pointer ${
+              selectedMood
+                ? 'bg-gradient-to-r from-amber-500/20 to-pink-500/20 border-amber-500/40 text-amber-300'
+                : 'bg-slate-800/80 border-slate-700 text-zinc-400 hover:text-white'
+            }`}
+            title="Attach Mood / Emotion"
+          >
+            <span>{selectedMood || '😊 Mood'}</span>
+          </button>
+
+          {showMoodPicker && (
+            <div className="absolute bottom-12 right-0 z-40 bg-slate-900 border border-slate-700 rounded-xl p-2.5 shadow-2xl flex flex-wrap gap-1.5 w-48 animate-in fade-in">
+              {[
+                { emoji: '😊', label: 'Happy' },
+                { emoji: '❤️', label: 'Love' },
+                { emoji: '🔥', label: 'Excited' },
+                { emoji: '😔', label: 'Sad' },
+                { emoji: '😰', label: 'Stressed' },
+                { emoji: '🎉', label: 'Party' },
+                { emoji: '😴', label: 'Sleepy' },
+                { emoji: '😠', label: 'Angry' },
+              ].map((m) => (
+                <button
+                  key={m.label}
+                  type="button"
+                  onClick={() => {
+                    setSelectedMood(selectedMood === `${m.emoji} ${m.label}` ? null : `${m.emoji} ${m.label}`);
+                    setShowMoodPicker(false);
+                  }}
+                  className={`px-2 py-1 rounded-lg text-xs flex items-center gap-1 transition ${
+                    selectedMood === `${m.emoji} ${m.label}`
+                      ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
+                      : 'hover:bg-slate-800 text-zinc-300'
+                  }`}
+                >
+                  <span>{m.emoji}</span>
+                  <span>{m.label}</span>
+                </button>
+              ))}
+              {selectedMood && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedMood(null);
+                    setShowMoodPicker(false);
+                  }}
+                  className="w-full text-center text-[10px] text-red-400 hover:underline pt-1 border-t border-slate-800 mt-1"
+                >
+                  Clear Mood
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Translation Selector Button */}
+        <div className="relative shrink-0 hidden md:block">
+          <button
+            type="button"
+            onClick={() => {
+              setShowLangPicker(!showLangPicker);
+              setShowMoodPicker(false);
+            }}
+            className={`p-2 rounded-full transition cursor-pointer flex items-center gap-1 text-xs font-bold ${
+              preferredLanguage !== 'en'
+                ? 'text-cyan-400 bg-cyan-950/40 border border-cyan-800/60 px-2.5'
+                : 'text-slate-400 hover:text-cyan-400 hover:bg-slate-800'
+            }`}
+            title={`Live Translation: ${preferredLanguage.toUpperCase()}`}
+          >
+            <Globe className="w-4.5 h-4.5" />
+            {preferredLanguage !== 'en' && <span>{preferredLanguage.toUpperCase()}</span>}
+          </button>
+
+          {showLangPicker && (
+            <div className="absolute bottom-12 right-0 z-40 bg-slate-900 border border-slate-700 rounded-xl p-2.5 shadow-2xl flex flex-col gap-1 w-36 animate-in fade-in">
+              <span className="text-[10px] font-bold text-zinc-500 px-2 uppercase">Translate incoming to:</span>
+              {[
+                { code: 'en', name: 'Original (No trans)' },
+                { code: 'hi', name: '🇮🇳 Hindi (हिन्दी)' },
+                { code: 'es', name: '🇪🇸 Spanish' },
+                { code: 'fr', name: '🇫🇷 French' },
+                { code: 'ar', name: '🇸🇦 Arabic' },
+                { code: 'de', name: '🇩🇪 German' },
+                { code: 'ja', name: '🇯🇵 Japanese' },
+              ].map((lang) => (
+                <button
+                  key={lang.code}
+                  type="button"
+                  onClick={() => {
+                    setPreferredLanguage(lang.code);
+                    setShowLangPicker(false);
+                  }}
+                  className={`px-2 py-1 rounded-md text-xs text-left transition flex items-center justify-between ${
+                    preferredLanguage === lang.code
+                      ? 'bg-cyan-500/20 text-cyan-300 font-bold'
+                      : 'hover:bg-slate-800 text-zinc-300'
+                  }`}
+                >
+                  <span>{lang.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Hidden File Input for Gallery (Photos & Videos) */}

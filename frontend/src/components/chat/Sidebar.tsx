@@ -402,45 +402,45 @@ export default function Sidebar() {
   }, [searchQuery, savedContactsList]);
 
   return (
-    <div className="w-80 md:w-96 flex flex-col h-full bg-slate-950 border-r border-slate-900 relative shrink-0">
+    <div className="w-full md:w-96 flex flex-col h-full bg-slate-950 border-r border-slate-900 relative shrink-0">
       
       {/* CharChat Header */}
-      <div className="bg-slate-900 border-b border-slate-800/80 text-white px-4 pt-4 pb-1 shadow-md">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xl font-extrabold tracking-wide text-teal-400">CharChat</h2>
-          <div className="flex items-center gap-3">
+      <div className="bg-slate-900 border-b border-slate-800/80 text-white px-3 sm:px-4 pt-3 sm:pt-4 pb-1 shadow-md">
+        <div className="flex items-center justify-between gap-1 sm:gap-2 mb-3">
+          <h2 className="text-xl font-extrabold tracking-wide text-teal-400 shrink-0">CharChat</h2>
+          <div className="flex items-center gap-1 sm:gap-2.5 overflow-x-auto py-1 pl-1 max-w-full no-scrollbar">
             <button 
               onClick={() => setShowContactModal(true)}
               title="Create New Contact"
-              className="p-1 rounded hover:bg-white/10 text-zinc-450 hover:text-white transition-colors"
+              className="p-1.5 sm:p-1 rounded hover:bg-white/10 text-teal-400 sm:text-zinc-450 hover:text-white transition-colors bg-white/5 sm:bg-transparent shrink-0"
             >
               <UserPlus className="w-5 h-5" />
             </button>
             <button 
               onClick={() => setShowGroupModal(true)}
               title="New Group Chat"
-              className="p-1 rounded hover:bg-white/10 text-zinc-450 hover:text-white transition-colors"
+              className="p-1.5 sm:p-1 rounded hover:bg-white/10 text-zinc-300 sm:text-zinc-450 hover:text-white transition-colors bg-white/5 sm:bg-transparent shrink-0"
             >
               <Users className="w-5 h-5" />
             </button>
             <button 
               onClick={() => setShowSavedContactsModal(true)}
               title="Saved Contacts Book"
-              className="p-1 rounded hover:bg-white/10 text-zinc-450 hover:text-teal-400 transition-colors cursor-pointer"
+              className="p-1.5 sm:p-1 rounded hover:bg-white/10 text-zinc-300 sm:text-zinc-450 hover:text-teal-400 transition-colors cursor-pointer bg-white/5 sm:bg-transparent shrink-0"
             >
               <BookUser className="w-5 h-5" />
             </button>
             <button 
               onClick={toggleTheme}
               title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
-              className="p-1 rounded hover:bg-white/10 text-amber-400 hover:text-amber-300 transition-colors cursor-pointer"
+              className="p-1.5 sm:p-1 rounded hover:bg-white/10 text-amber-400 hover:text-amber-300 transition-colors cursor-pointer bg-white/5 sm:bg-transparent shrink-0"
             >
               {theme === 'dark' ? <Sun className="w-5 h-5 animate-spin-slow" /> : <Moon className="w-5 h-5 text-indigo-400" />}
             </button>
             <button 
               onClick={() => setShowSettingsModal(true)}
               title="Settings"
-              className="p-1 rounded hover:bg-white/10 text-zinc-455 hover:text-white transition-colors"
+              className="p-1.5 sm:p-1 rounded hover:bg-white/10 text-zinc-300 sm:text-zinc-455 hover:text-white transition-colors bg-white/5 sm:bg-transparent shrink-0"
             >
               <Settings className="w-5 h-5" />
             </button>
@@ -449,7 +449,7 @@ export default function Sidebar() {
               src={user?.avatar_url} 
               alt="My Avatar"
               onClick={() => setShowSettingsModal(true)}
-              className="w-6 h-6 rounded-full border-[2.5px] cursor-pointer object-cover transition-all shrink-0 ml-1.5 shadow-md active:scale-95 hover:scale-110" 
+              className="w-7 h-7 sm:w-6 sm:h-6 rounded-full border-[2.5px] cursor-pointer object-cover transition-all shrink-0 ml-0.5 shadow-md active:scale-95 hover:scale-110" 
               style={{ borderColor: getUserColor(user), boxShadow: `0 0 10px ${getUserColor(user)}99` }}
               title="Profile Settings"
             />
