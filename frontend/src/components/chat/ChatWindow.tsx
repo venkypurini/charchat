@@ -3,15 +3,20 @@ import { useChatStore } from '../../store/store';
 import { useChat } from '../../hooks/useChat';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
-import { ChevronLeft, MessageSquare, Info, Phone, Video, MoreVertical, PhoneOff } from 'lucide-react';
+import { ChevronLeft, MessageSquare, Info, Phone, Video, MoreVertical, PhoneOff, Sparkles, History, BellDot } from 'lucide-react';
 import api from '../../api';
+import { AIMemoryModal } from './AIMemoryModal';
+import { ConversationTimeline } from './ConversationTimeline';
 
 export default function ChatWindow() {
-  const { user, conversations, activeConversationId, messages, typingUsers, onlineUsers, setActiveConversationId, addCall } = useChatStore();
+  const { user, conversations, activeConversationId, messages, typingUsers, onlineUsers, setActiveConversationId, addCall, smartSilentMode, setSmartSilentMode } = useChatStore();
   const { sendMessage, sendTypingStart, sendTypingStop, sendReadReceipt, loadMessages } = useChat();
 
   const [isCalling, setIsCalling] = useState(false);
   const [callType, setCallType] = useState<'voice' | 'video'>('voice');
+  const [showAIMemory, setShowAIMemory] = useState(false);
+  const [showTimeline, setShowTimeline] = useState(false);
+  const [jumpMessageId, setJumpMessageId] = useState<string | null>(null);
 
   const activeConversation = useMemo(() => {
     return conversations.find(c => c.id === activeConversationId) || null;
@@ -51,9 +56,9 @@ export default function ChatWindow() {
     return messages[activeConversationId] || [];
   }, [messages, activeConversationId]);
 
-  const handleSend = useCallback((content: string, type: string = 'text') => {
+  const handleSend = useCallback((content: string, type: string = 'text', extra?: any) => {
     if (activeConversationId) {
-      sendMessage(activeConversationId, content, type);
+      sendMessage(activeConversationId, content, type, extra);
     }
   }, [activeConversationId, sendMessage]);
 
@@ -157,6 +162,45 @@ export default function ChatWindow() {
         </div>
 
         <div className="flex items-center gap-2.5 text-slate-300">
+          {/* AI Memory Assistant Button */}
+          <button
+            onClick={() => setShowAIMemory(true)}
+            title="AI Memory Assistant (Search History & Facts)"
+            className="p-1.5 rounded-lg bg-gradient-to-tr from-teal-500/20 to-emerald-500/10 border border-teal-500/30 hover:bg-teal-500/30 text-teal-300 transition-all flex items-center gap-1 shadow-sm"
+          >
+            <Sparkles className="w-4 h-4 animate-pulse" />
+            <span className="hidden sm:inline text-xs font-semibold">AI Memory</span>
+          </button>
+
+          {/* Relationship Timeline Toggle Button */}
+          <button
+            onClick={() => setShowTimeline(!showTimeline)}
+            title="Toggle Relationship Milestone Timeline"
+            className={`p-1.5 rounded-lg border transition-all flex items-center gap-1 ${
+              showTimeline 
+                ? 'bg-purple-500/30 border-purple-400 text-purple-200 shadow-lg shadow-purple-500/20' 
+                : 'bg-slate-800/80 border-slate-700 hover:bg-slate-800 text-zinc-300 hover:text-white'
+            }`}
+          >
+            <History className="w-4 h-4" />
+            <span className="hidden sm:inline text-xs font-medium">Timeline</span>
+          </button>
+
+          {/* Smart Silent Mode Toggle */}
+          <button
+            onClick={() => setSmartSilentMode(!smartSilentMode)}
+            title={`Smart Silent Mode (AI Priority Routing): ${smartSilentMode ? 'ON' : 'OFF'}`}
+            className={`p-1.5 rounded-lg border transition-all ${
+              smartSilentMode
+                ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-sm'
+                : 'bg-slate-800/40 border-slate-700/60 hover:bg-slate-800 text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            <BellDot className="w-4 h-4" />
+          </button>
+
+          <div className="h-5 w-px bg-slate-800 mx-0.5" />
+
           {peer ? (
             <>
               <button 
@@ -198,19 +242,47 @@ export default function ChatWindow() {
         </div>
       </div>
 
-      {/* Message List Area */}
-      <MessageList 
-        conversationId={activeConversationId} 
-        messages={activeMessages} 
-        conversation={activeConversation}
-        onLoadMore={handleLoadMore}
-      />
+      {/* Timeline view or Normal Chat view */}
+      {showTimeline ? (
+        <ConversationTimeline
+          messages={activeMessages}
+          conversationName={conversationDetails.title}
+          onClose={() => setShowTimeline(false)}
+          onJumpToMessage={(id) => {
+            setShowTimeline(false);
+            setJumpMessageId(id);
+          }}
+        />
+      ) : (
+        <>
+          {/* Message List Area */}
+          <MessageList 
+            conversationId={activeConversationId} 
+            messages={activeMessages} 
+            conversation={activeConversation}
+            onLoadMore={handleLoadMore}
+            jumpMessageId={jumpMessageId}
+            onClearJump={() => setJumpMessageId(null)}
+          />
 
-      {/* Message Input */}
-      <MessageInput 
-        onSend={handleSend} 
-        onTypingStart={handleTypingStart} 
-        onTypingStop={handleTypingStop} 
+          {/* Message Input */}
+          <MessageInput 
+            onSend={handleSend} 
+            onTypingStart={handleTypingStart} 
+            onTypingStop={handleTypingStop} 
+          />
+        </>
+      )}
+
+      {/* AI Memory Modal */}
+      <AIMemoryModal
+        isOpen={showAIMemory}
+        onClose={() => setShowAIMemory(false)}
+        conversationId={activeConversationId}
+        onJumpToMessage={(id) => {
+          setShowTimeline(false);
+          setJumpMessageId(id);
+        }}
       />
 
       {/* Ringing Overlay */}

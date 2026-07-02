@@ -57,7 +57,7 @@ router.get('/conversations', authMiddleware, async (req: AuthRequest, res: Respo
         );
 
         const lastMessage = await db.get(
-          `SELECT id, content, sender_id, type, status, created_at 
+          `SELECT id, content, sender_id, type, status, mood, unlock_at, interactive_type, interactive_data, created_at 
            FROM messages 
            WHERE conversation_id = ? 
            ORDER BY created_at DESC LIMIT 1`,
@@ -116,7 +116,7 @@ router.get('/conversations/:id/messages', authMiddleware, async (req: AuthReques
     }
 
     const messages = await db.all(
-      `SELECT id, conversation_id, sender_id, content, type, status, created_at 
+      `SELECT id, conversation_id, sender_id, content, type, status, mood, unlock_at, interactive_type, interactive_data, created_at 
        FROM messages 
        WHERE conversation_id = ? AND created_at < ? 
        ORDER BY created_at DESC 
@@ -171,7 +171,7 @@ router.post('/conversations', authMiddleware, async (req: AuthRequest, res: Resp
         );
 
         const lastMessage = await db.get(
-          `SELECT id, content, sender_id, type, status, created_at 
+          `SELECT id, content, sender_id, type, status, mood, unlock_at, interactive_type, interactive_data, created_at 
            FROM messages 
            WHERE conversation_id = ? 
            ORDER BY created_at DESC LIMIT 1`,
@@ -355,7 +355,7 @@ router.post('/conversations/by-mobile', authMiddleware, async (req: AuthRequest,
     );
 
     const lastMessage = await db.get(
-      `SELECT id, content, sender_id, type, status, created_at 
+      `SELECT id, content, sender_id, type, status, mood, unlock_at, interactive_type, interactive_data, created_at 
        FROM messages 
        WHERE conversation_id = ? 
        ORDER BY created_at DESC LIMIT 1`,
@@ -508,6 +508,89 @@ router.delete('/conversations/:id', authMiddleware, async (req: AuthRequest, res
   } catch (error) {
     console.error('Delete conversation error:', error);
     return res.status(500).json({ error: 'Failed to delete conversation' });
+  }
+});
+
+// AI Memory Chat search endpoint
+router.post('/ai/memory', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const currentUserId = req.user?.id;
+  const { query, conversationId } = req.body;
+
+  if (!query || typeof query !== 'string') {
+    return res.status(400).json({ error: 'Search query is required' });
+  }
+
+  try {
+    const db = await getDb();
+    
+    // Check membership if conversationId is specified
+    let targetConversations: string[] = [];
+    if (conversationId) {
+      const isMember = await db.get('SELECT 1 FROM conversation_members WHERE conversation_id = ? AND user_id = ?', [conversationId, currentUserId]);
+      if (!isMember) return res.status(403).json({ error: 'Not authorized for this conversation' });
+      targetConversations.push(conversationId);
+    } else {
+      const convs = await db.all('SELECT conversation_id FROM conversation_members WHERE user_id = ?', [currentUserId]);
+      targetConversations = convs.map(c => c.conversation_id);
+    }
+
+    if (targetConversations.length === 0) {
+      return res.json({ answer: "You have no active conversations yet to search in.", messages: [] });
+    }
+
+    // Parse query for keywords and types
+    const lowerQuery = query.toLowerCase();
+    const stopWords = ['what', 'when', 'did', 'who', 'how', 'where', 'show', 'all', 'the', 'is', 'about', 'in', 'on', 'at', 'to', 'for', 'a', 'an', 'send', 'sent', 'discuss', 'discussions', 'promise', 'promises'];
+    const words = lowerQuery.split(/\s+/).filter(w => w.length > 2 && !stopWords.includes(w));
+
+    let typeFilter = null;
+    if (lowerQuery.includes('photo') || lowerQuery.includes('image') || lowerQuery.includes('picture')) typeFilter = 'image';
+    if (lowerQuery.includes('voice') || lowerQuery.includes('audio') || lowerQuery.includes('recording')) typeFilter = 'audio';
+    if (lowerQuery.includes('file') || lowerQuery.includes('pdf') || lowerQuery.includes('doc')) typeFilter = 'file';
+
+    const placeholders = targetConversations.map(() => '?').join(',');
+    let sql = `SELECT m.*, u.username as sender_name 
+               FROM messages m 
+               JOIN users u ON m.sender_id = u.id 
+               WHERE m.conversation_id IN (${placeholders})`;
+    const params: any[] = [...targetConversations];
+
+    if (typeFilter) {
+      sql += ` AND m.type = ?`;
+      params.push(typeFilter);
+    } else if (words.length > 0) {
+      const keywordConditions = words.map(() => `m.content LIKE ?`).join(' OR ');
+      sql += ` AND (${keywordConditions})`;
+      words.forEach(w => params.push(`%${w}%`));
+    }
+
+    sql += ` ORDER BY m.created_at DESC LIMIT 20`;
+    const matchedMessages = await db.all(sql, params);
+
+    // Synthesize an AI summary answer
+    let answer = "";
+    if (matchedMessages.length === 0) {
+      answer = `I scanned your conversation memory for "${query}", but couldn't find any direct matches or discussions.`;
+    } else {
+      const count = matchedMessages.length;
+      const latest = matchedMessages[0];
+      const dateStr = new Date(latest.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      
+      if (lowerQuery.includes('when')) {
+        answer = `I found ${count} relevant record${count > 1 ? 's' : ''}. The most recent was by **${latest.sender_name}** on **${dateStr}**: "${latest.content}"`;
+      } else if (lowerQuery.includes('promise') || lowerQuery.includes('agree')) {
+        answer = `Scanning for commitments and promises: Found ${count} discussion item${count > 1 ? 's' : ''}. For example, **${latest.sender_name}** mentioned: "${latest.content}" on ${dateStr}.`;
+      } else if (typeFilter) {
+        answer = `I located ${count} ${typeFilter} message${count > 1 ? 's' : ''} shared in your chat memory. Click below to view or jump to them!`;
+      } else {
+        answer = `AI Memory found ${count} relevant discussion${count > 1 ? 's' : ''} matching your inquiry. Highlights include **${latest.sender_name}** saying: "${latest.content}" on ${dateStr}.`;
+      }
+    }
+
+    return res.json({ answer, messages: matchedMessages });
+  } catch (error) {
+    console.error('AI memory error:', error);
+    return res.status(500).json({ error: 'AI Memory processing failed' });
   }
 });
 

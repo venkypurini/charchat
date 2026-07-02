@@ -2,19 +2,19 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import { useChatStore, Message, Conversation } from '../../store/store';
 import { getSocket } from '../../hooks/useSocket';
-import { Check, CheckCheck, Clock, Loader2, X, Download, FileText, Video as VideoIcon, Copy, Trash2, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { Check, CheckCheck, Clock, Loader2, X, Download, FileText, Video as VideoIcon, Copy, Trash2, CheckCircle2, ShieldAlert, Lock, Unlock, Gift, Sparkles, Wand2, KeyRound, Globe, HeartHandshake, Zap } from 'lucide-react';
 
 interface MessageListProps {
   conversationId: string;
   messages: Message[];
   conversation: Conversation;
   onLoadMore: () => Promise<any>;
+  jumpMessageId?: string | null;
+  onClearJump?: () => void;
 }
 
-export default React.memo(function MessageList({ conversationId, messages, conversation, onLoadMore }: MessageListProps) {
-  const user = useChatStore((state) => state.user);
-  const deleteMessage = useChatStore((state) => state.deleteMessage);
-  const removeMessage = useChatStore((state) => state.removeMessage);
+export default React.memo(function MessageList({ conversationId, messages, conversation, onLoadMore, jumpMessageId, onClearJump }: MessageListProps) {
+  const { user, deleteMessage, removeMessage, smartSilentMode, preferredLanguage } = useChatStore();
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   
   const [loadingMore, setLoadingMore] = useState(false);
@@ -23,6 +23,19 @@ export default React.memo(function MessageList({ conversationId, messages, conve
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [copiedToast, setCopiedToast] = useState(false);
   const [floatingCopy, setFloatingCopy] = useState<{ text: string; x: number; y: number } | null>(null);
+  const [revealedGames, setRevealedGames] = useState<Record<string, boolean>>({});
+  const [vaultInputs, setVaultInputs] = useState<Record<string, string>>({});
+  const [vaultErrors, setVaultErrors] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (jumpMessageId && virtuosoRef.current && messages.length > 0) {
+      const idx = messages.findIndex(m => m.id === jumpMessageId);
+      if (idx !== -1) {
+        virtuosoRef.current.scrollToIndex({ index: idx, align: 'center', behavior: 'smooth' });
+        if (onClearJump) setTimeout(onClearJump, 2500);
+      }
+    }
+  }, [jumpMessageId, messages]);
 
   useEffect(() => {
     const handleMouseUp = () => {
@@ -154,6 +167,10 @@ export default React.memo(function MessageList({ conversationId, messages, conve
     const isVideo = msg.type === 'video' || msg.content.startsWith('data:video/') || /\.(mp4|mov|webm|avi|mkv)$/i.test(msg.content);
     const isDocument = msg.type === 'document' || msg.type === 'file' || (msg.content.startsWith('{') && msg.content.includes('"url"'));
     const isDeleted = msg.type === 'deleted' || msg.content === '🚫 This message was deleted';
+    const isTimeLocked = msg.unlock_at && Date.now() < msg.unlock_at;
+    const isInteractive = msg.interactive_type || msg.type === 'interactive';
+    const isUrgent = smartSilentMode && /urgent|emergency|important|call me|need help|asap/i.test(msg.content);
+    const isHighlighted = jumpMessageId === msg.id;
 
     let docName = 'Document';
     let docSize = '';
@@ -184,21 +201,145 @@ export default React.memo(function MessageList({ conversationId, messages, conve
         )}
         
         <div className="flex items-start gap-2 max-w-[85%] md:max-w-[70%]">
-          {/* We omit avatar icons on the chat bubbles to exactly mirror the WhatsApp clean bubble aesthetic */}
           <div 
             onDoubleClick={(e) => {
               e.stopPropagation();
               setSelectedMessage(msg);
             }}
             title="Double click for actions (Copy, Delete)"
-            className={`rounded-lg px-3 py-1.5 shadow-sm flex flex-col relative cursor-pointer select-text ${
+            className={`rounded-lg px-3 py-1.5 shadow-sm flex flex-col relative cursor-pointer select-text transition-all ${
+              isHighlighted ? 'ring-2 ring-teal-400 scale-[1.02] animate-pulse' : ''
+            } ${
+              isUrgent ? 'border-2 border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.3)]' : ''
+            } ${
               isOwnMessage 
-                ? 'bg-gradient-to-br from-teal-800/80 to-emerald-900/80 text-slate-100 rounded-tr-none border border-teal-500/40 shadow-[0_4px_12px_rgba(4,120,87,0.15),inset_0_1px_1px_rgba(255,255,255,0.2)]' 
+                ? 'bg-gradient-to-br from-teal-800/80 to-emerald-900/80 text-slate-100 rounded-tr-none border border-teal-500/40 shadow-[0_4px_12px_rgba(4,120,87,0.15)]' 
                 : 'bg-gradient-to-br from-zinc-800/90 to-slate-800/90 text-slate-100 rounded-tl-none border border-zinc-700/50 shadow-[0_4px_12px_rgba(0,0,0,0.15)]'
             }`}
           >
+            {/* Priority Smart Silent Mode Badge */}
+            {isUrgent && (
+              <div className="flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-full mb-1 border border-amber-500/30 w-fit">
+                <Zap className="w-3 h-3 fill-amber-300 animate-bounce" />
+                <span>Priority Alert (Bypassed Silent Mode)</span>
+              </div>
+            )}
+
+            {/* Mood Pill Badge */}
+            {msg.mood && !isDeleted && (
+              <div className="flex items-center gap-1 text-[11px] font-bold text-pink-300 bg-slate-950/60 px-2 py-0.5 rounded-full mb-1.5 border border-pink-500/30 w-fit">
+                <span>{msg.mood}</span>
+              </div>
+            )}
+
+            {/* Content Rendering */}
             {isDeleted ? (
               <p className="text-sm italic text-slate-400 pr-12 pb-1 select-none">🚫 This message was deleted</p>
+            ) : isTimeLocked ? (
+              /* Sealed Time Capsule Vault */
+              <div className="p-4 bg-gradient-to-br from-purple-950/80 to-slate-950 border border-purple-500/40 rounded-xl my-1 space-y-2 min-w-[220px] shadow-lg">
+                <div className="flex items-center justify-between text-purple-300 font-bold text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <Lock className="w-4 h-4 animate-bounce" /> Sealed Time Capsule
+                  </span>
+                  <span className="text-[10px] bg-purple-500/20 px-1.5 py-0.5 rounded border border-purple-500/30">Locked</span>
+                </div>
+                <p className="text-xs text-zinc-400 italic">
+                  This message is encrypted and will automatically unlock on{' '}
+                  <span className="text-purple-300 font-semibold">
+                    {new Date(msg.unlock_at!).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </p>
+                <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-full w-1/3 animate-pulse" />
+                </div>
+              </div>
+            ) : isInteractive ? (
+              /* Interactive Games & Surprises */
+              <div className="my-1 min-w-[220px] md:min-w-[260px]">
+                {msg.interactive_type === 'scratch_card' ? (
+                  <div className="p-3.5 bg-gradient-to-br from-pink-950/80 to-rose-950/80 border border-pink-500/40 rounded-xl space-y-2 text-center shadow-lg">
+                    <div className="flex items-center justify-center gap-1.5 text-pink-300 font-bold text-xs">
+                      <Gift className="w-4 h-4 animate-bounce" /> Scratch Card Surprise
+                    </div>
+                    {revealedGames[msg.id] ? (
+                      <div className="p-3 bg-slate-950/90 rounded-lg border border-pink-500/30 text-sm font-bold text-white animate-scale-up">
+                        {msg.content.replace('🎟️ Scratch Card Surprise: ', '')}
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setRevealedGames(prev => ({ ...prev, [msg.id]: true }))}
+                        className="w-full py-3 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 text-slate-950 font-extrabold text-xs rounded-lg shadow-md transition transform active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        <span>Tap to Scratch & Reveal!</span>
+                      </button>
+                    )}
+                  </div>
+                ) : msg.interactive_type === 'truth_dare' ? (
+                  <div className="p-3.5 bg-gradient-to-br from-amber-950/80 to-orange-950/80 border border-amber-500/40 rounded-xl space-y-1.5 text-center shadow-lg">
+                    <div className="flex items-center justify-center gap-1.5 text-amber-300 font-bold text-xs uppercase tracking-wider">
+                      <Wand2 className="w-4 h-4 animate-spin-slow" /> Spin Wheel Challenge
+                    </div>
+                    <p className="text-sm font-bold text-white bg-slate-950/60 p-2.5 rounded-lg border border-amber-500/20">
+                      {msg.content.replace('🎰 Spin Wheel Challenge: ', '')}
+                    </p>
+                  </div>
+                ) : msg.interactive_type === 'secret_vault' ? (
+                  <div className="p-3.5 bg-gradient-to-br from-teal-950/80 to-slate-950 border border-teal-500/40 rounded-xl space-y-2 shadow-lg">
+                    <div className="flex items-center justify-between text-teal-300 font-bold text-xs">
+                      <span className="flex items-center gap-1.5"><KeyRound className="w-4 h-4" /> Password Vault</span>
+                      {revealedGames[msg.id] && <span className="text-[10px] text-emerald-400">Unlocked</span>}
+                    </div>
+                    <p className="text-xs text-zinc-300 font-medium">
+                      {msg.content.replace('🔐 Secret Password Vault: ', '')}
+                    </p>
+                    {revealedGames[msg.id] ? (
+                      <div className="p-2.5 bg-slate-950/90 rounded-lg border border-teal-500/40 text-sm font-bold text-teal-300 animate-scale-up">
+                        {(() => {
+                          try {
+                            const data = JSON.parse(msg.interactive_data || '{}');
+                            return `🔓 Secret: "${data.secret}"`;
+                          } catch (e) { return '🔓 Secret Unlocked!'; }
+                        })()}
+                      </div>
+                    ) : (
+                      <div className="flex gap-1.5">
+                        <input
+                          type="text"
+                          value={vaultInputs[msg.id] || ''}
+                          onChange={(e) => setVaultInputs(prev => ({ ...prev, [msg.id]: e.target.value }))}
+                          placeholder="Enter password..."
+                          className={`flex-1 px-2.5 py-1.5 bg-slate-950 border rounded-lg text-xs text-white outline-none font-mono ${
+                            vaultErrors[msg.id] ? 'border-red-500 animate-shake' : 'border-slate-700 focus:border-teal-500'
+                          }`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            try {
+                              const data = JSON.parse(msg.interactive_data || '{}');
+                              const input = (vaultInputs[msg.id] || '').toLowerCase().trim();
+                              if (input === data.answer) {
+                                setRevealedGames(prev => ({ ...prev, [msg.id]: true }));
+                                setVaultErrors(prev => ({ ...prev, [msg.id]: false }));
+                              } else {
+                                setVaultErrors(prev => ({ ...prev, [msg.id]: true }));
+                              }
+                            } catch (e) {}
+                          }}
+                          className="px-3 py-1.5 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs rounded-lg transition cursor-pointer"
+                        >
+                          Unlock
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm leading-relaxed break-words pr-12 pb-1">{msg.content}</p>
+                )}
+              </div>
             ) : isImage ? (
               <div className="pb-4 pt-1 pr-1 flex flex-col">
                 <img 
@@ -254,7 +395,19 @@ export default React.memo(function MessageList({ conversationId, messages, conve
                 </span>
               </div>
             ) : (
-              <p className="text-sm leading-relaxed break-words pr-12 pb-1">{msg.content}</p>
+              <div className="pr-12 pb-1 space-y-1">
+                {!isOwnMessage && preferredLanguage !== 'en' ? (
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-cyan-200 leading-relaxed break-words flex items-center gap-1">
+                      <Globe className="w-3.5 h-3.5 text-cyan-400 shrink-0 inline" />
+                      <span>{msg.content} (Translated to {preferredLanguage.toUpperCase()})</span>
+                    </p>
+                    <p className="text-[11px] text-zinc-400 italic">Original: {msg.content}</p>
+                  </div>
+                ) : (
+                  <p className="text-sm leading-relaxed break-words">{msg.content}</p>
+                )}
+              </div>
             )}
             
             {/* WhatsApp-style bottom right small timestamp and checkmark */}
@@ -263,6 +416,25 @@ export default React.memo(function MessageList({ conversationId, messages, conve
               {renderStatus(msg)}
             </div>
           </div>
+
+          {/* AI Empathy Suggestion Pill for Incoming Upset Moods */}
+          {!isOwnMessage && msg.mood && /😔|😰|😠|sad|stressed|angry/i.test(msg.mood) && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                const suggestion = "I noticed you seem stressed. I'm here for you! Do you want to talk about it or take a relaxing break together?";
+                navigator.clipboard.writeText(suggestion);
+                setCopiedToast(true);
+                setTimeout(() => setCopiedToast(false), 3000);
+              }}
+              className="mt-1 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-pink-500/40 text-pink-200 hover:bg-pink-500/30 transition text-xs font-semibold shadow-sm cursor-pointer self-start animate-pulse"
+              title="Click to copy supportive AI empathy reply to clipboard"
+            >
+              <HeartHandshake className="w-3.5 h-3.5 text-pink-400 shrink-0" />
+              <span>💡 AI Empathy: They seem upset. Click to copy supportive reply!</span>
+            </button>
+          )}
         </div>
       </div>
     );

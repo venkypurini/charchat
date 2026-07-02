@@ -1,9 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import EmojiPicker, { Theme, EmojiClickData } from 'emoji-picker-react';
-import { Send, Smile, Image as ImageIcon, FileText, X, Plus, Loader2, Video as VideoIcon, File } from 'lucide-react';
+import { Send, Smile, Image as ImageIcon, FileText, X, Plus, Loader2, Video as VideoIcon, File, Clock, Gift, Globe, Heart, Zap, Sparkles } from 'lucide-react';
+import { TimeCapsuleModal } from './TimeCapsuleModal';
+import { InteractiveGameModal } from './InteractiveGameModal';
+import { useChatStore } from '../../store/store';
 
 interface MessageInputProps {
-  onSend: (content: string, type?: string) => void;
+  onSend: (content: string, type?: string, extra?: { mood?: string; unlock_at?: number; interactive_type?: string; interactive_data?: string }) => void;
   onTypingStart: () => void;
   onTypingStop: () => void;
 }
@@ -21,6 +24,12 @@ export default function MessageInput({ onSend, onTypingStart, onTypingStop }: Me
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
   const [processing, setProcessing] = useState(false);
+  const [selectedMood, setSelectedMood] = useState<string | null>(null);
+  const [showMoodPicker, setShowMoodPicker] = useState(false);
+  const [showTimeCapsule, setShowTimeCapsule] = useState(false);
+  const [showInteractiveGame, setShowInteractiveGame] = useState(false);
+  const { preferredLanguage, setPreferredLanguage } = useChatStore();
+  const [showLangPicker, setShowLangPicker] = useState(false);
 
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isTypingRef = useRef(false);
@@ -180,28 +189,30 @@ export default function MessageInput({ onSend, onTypingStart, onTypingStop }: Me
     if (attachments.length > 0) {
       attachments.forEach((item) => {
         if (item.type === 'image') {
-          onSend(item.src, 'image');
+          onSend(item.src, 'image', { mood: selectedMood || undefined });
         } else if (item.type === 'video') {
-          onSend(item.src, 'video');
+          onSend(item.src, 'video', { mood: selectedMood || undefined });
         } else if (item.type === 'document') {
           const payload = JSON.stringify({
             name: item.name,
             size: item.size,
             url: item.src
           });
-          onSend(payload, 'document');
+          onSend(payload, 'document', { mood: selectedMood || undefined });
         }
       });
     }
 
     // Send text if present
     if (text.trim()) {
-      onSend(text.trim(), 'text');
+      onSend(text.trim(), 'text', { mood: selectedMood || undefined });
     }
 
     setText('');
     setAttachments([]);
     setShowEmojiPicker(false);
+    setShowMoodPicker(false);
+    setSelectedMood(null);
 
     // Clear typing timeout immediately on send
     if (typingTimeoutRef.current) {
@@ -326,11 +337,145 @@ export default function MessageInput({ onSend, onTypingStart, onTypingStop }: Me
         type="button"
         onClick={() => docInputRef.current?.click()}
         disabled={processing}
-        className="p-2 rounded-full transition text-slate-400 hover:text-amber-400 hover:bg-slate-800 shrink-0 cursor-pointer disabled:opacity-50"
-        title="Send Document (Any extension .pdf, .docx, etc.)"
+        className="p-2 rounded-full transition text-slate-400 hover:text-amber-400 hover:bg-slate-800 shrink-0 cursor-pointer disabled:opacity-50 hidden sm:block"
+        title="Send Document (.pdf, .docx, etc.)"
       >
         {processing ? <Loader2 className="w-6 h-6 animate-spin text-amber-400" /> : <FileText className="w-6 h-6" />}
       </button>
+
+      {/* Time Capsule Button */}
+      <button
+        type="button"
+        onClick={() => setShowTimeCapsule(true)}
+        className="p-2 rounded-full transition text-slate-400 hover:text-purple-400 hover:bg-slate-800 shrink-0 cursor-pointer"
+        title="Lock a Time Capsule Message"
+      >
+        <Clock className="w-5 h-5" />
+      </button>
+
+      {/* Interactive Game Button */}
+      <button
+        type="button"
+        onClick={() => setShowInteractiveGame(true)}
+        className="p-2 rounded-full transition text-slate-400 hover:text-pink-400 hover:bg-slate-800 shrink-0 cursor-pointer"
+        title="Send Interactive Game / Scratch Card"
+      >
+        <Gift className="w-5 h-5" />
+      </button>
+
+      {/* Mood Picker Button */}
+      <div className="relative shrink-0">
+        <button
+          type="button"
+          onClick={() => {
+            setShowMoodPicker(!showMoodPicker);
+            setShowLangPicker(false);
+          }}
+          className={`px-2.5 py-1.5 rounded-full text-xs font-semibold border transition flex items-center gap-1 cursor-pointer ${
+            selectedMood
+              ? 'bg-gradient-to-r from-amber-500/20 to-pink-500/20 border-amber-500/40 text-amber-300'
+              : 'bg-slate-800/80 border-slate-700 text-zinc-400 hover:text-white'
+          }`}
+          title="Attach Mood / Emotion"
+        >
+          <span>{selectedMood || '😊 Mood'}</span>
+        </button>
+
+        {showMoodPicker && (
+          <div className="absolute bottom-12 right-0 z-40 bg-slate-900 border border-slate-700 rounded-xl p-2.5 shadow-2xl flex flex-wrap gap-1.5 w-48 animate-in fade-in">
+            {[
+              { emoji: '😊', label: 'Happy' },
+              { emoji: '❤️', label: 'Love' },
+              { emoji: '🔥', label: 'Excited' },
+              { emoji: '😔', label: 'Sad' },
+              { emoji: '😰', label: 'Stressed' },
+              { emoji: '🎉', label: 'Party' },
+              { emoji: '😴', label: 'Sleepy' },
+              { emoji: '😠', label: 'Angry' },
+            ].map((m) => (
+              <button
+                key={m.label}
+                type="button"
+                onClick={() => {
+                  setSelectedMood(selectedMood === `${m.emoji} ${m.label}` ? null : `${m.emoji} ${m.label}`);
+                  setShowMoodPicker(false);
+                }}
+                className={`px-2 py-1 rounded-lg text-xs flex items-center gap-1 transition ${
+                  selectedMood === `${m.emoji} ${m.label}`
+                    ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
+                    : 'hover:bg-slate-800 text-zinc-300'
+                }`}
+              >
+                <span>{m.emoji}</span>
+                <span>{m.label}</span>
+              </button>
+            ))}
+            {selectedMood && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedMood(null);
+                  setShowMoodPicker(false);
+                }}
+                className="w-full text-center text-[10px] text-red-400 hover:underline pt-1 border-t border-slate-800 mt-1"
+              >
+                Clear Mood
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Translation Selector Button */}
+      <div className="relative shrink-0 hidden md:block">
+        <button
+          type="button"
+          onClick={() => {
+            setShowLangPicker(!showLangPicker);
+            setShowMoodPicker(false);
+          }}
+          className={`p-2 rounded-full transition cursor-pointer flex items-center gap-1 text-xs font-bold ${
+            preferredLanguage !== 'en'
+              ? 'text-cyan-400 bg-cyan-950/40 border border-cyan-800/60 px-2.5'
+              : 'text-slate-400 hover:text-cyan-400 hover:bg-slate-800'
+          }`}
+          title={`Live Translation: ${preferredLanguage.toUpperCase()}`}
+        >
+          <Globe className="w-4.5 h-4.5" />
+          {preferredLanguage !== 'en' && <span>{preferredLanguage.toUpperCase()}</span>}
+        </button>
+
+        {showLangPicker && (
+          <div className="absolute bottom-12 right-0 z-40 bg-slate-900 border border-slate-700 rounded-xl p-2.5 shadow-2xl flex flex-col gap-1 w-36 animate-in fade-in">
+            <span className="text-[10px] font-bold text-zinc-500 px-2 uppercase">Translate incoming to:</span>
+            {[
+              { code: 'en', name: 'Original (No trans)' },
+              { code: 'hi', name: '🇮🇳 Hindi (हिन्दी)' },
+              { code: 'es', name: '🇪🇸 Spanish' },
+              { code: 'fr', name: '🇫🇷 French' },
+              { code: 'ar', name: '🇸🇦 Arabic' },
+              { code: 'de', name: '🇩🇪 German' },
+              { code: 'ja', name: '🇯🇵 Japanese' },
+            ].map((lang) => (
+              <button
+                key={lang.code}
+                type="button"
+                onClick={() => {
+                  setPreferredLanguage(lang.code);
+                  setShowLangPicker(false);
+                }}
+                className={`px-2 py-1 rounded-md text-xs text-left transition flex items-center justify-between ${
+                  preferredLanguage === lang.code
+                    ? 'bg-cyan-500/20 text-cyan-300 font-bold'
+                    : 'hover:bg-slate-800 text-zinc-300'
+                }`}
+              >
+                <span>{lang.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Hidden File Input for Gallery (Photos & Videos) */}
       <input
@@ -355,8 +500,14 @@ export default function MessageInput({ onSend, onTypingStart, onTypingStop }: Me
         type="text"
         value={text}
         onChange={handleInputChange}
-        placeholder={attachments.length > 0 ? "Add a message or caption..." : "Type a message"}
-        className="flex-1 px-4 py-2.5 rounded-lg text-slate-100 outline-none bg-slate-950 border border-slate-850 focus:border-slate-700 focus:ring-1 focus:ring-slate-700 text-sm shadow-inner placeholder-slate-500"
+        placeholder={
+          selectedMood
+            ? `Type a message (Feeling ${selectedMood})...`
+            : attachments.length > 0
+            ? "Add a caption..."
+            : "Type a message"
+        }
+        className="flex-1 px-4 py-2.5 rounded-lg text-slate-100 outline-none bg-slate-950 border border-slate-850 focus:border-slate-700 focus:ring-1 focus:ring-slate-700 text-sm shadow-inner placeholder-slate-500 min-w-[120px]"
       />
 
       <button
@@ -367,6 +518,27 @@ export default function MessageInput({ onSend, onTypingStart, onTypingStop }: Me
       >
         {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4.5 h-4.5 translate-x-[1px]" />}
       </button>
+
+      {/* Modals */}
+      <TimeCapsuleModal
+        isOpen={showTimeCapsule}
+        onClose={() => setShowTimeCapsule(false)}
+        onSendCapsule={(content, unlockAt) => {
+          onSend(content, 'text', { unlock_at: unlockAt, mood: selectedMood || undefined });
+        }}
+      />
+
+      <InteractiveGameModal
+        isOpen={showInteractiveGame}
+        onClose={() => setShowInteractiveGame(false)}
+        onSendGame={(content, type, data) => {
+          onSend(content, 'interactive', {
+            interactive_type: type,
+            interactive_data: JSON.stringify(data),
+            mood: selectedMood || undefined
+          });
+        }}
+      />
     </form>
   );
 }

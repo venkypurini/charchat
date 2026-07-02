@@ -8,7 +8,7 @@ export function useChat() {
   const addMessage = useChatStore((state) => state.addMessage);
   const enqueueOfflineMessage = useChatStore((state) => state.enqueueOfflineMessage);
 
-  const sendMessage = async (conversationId: string, content: string, type: string = 'text') => {
+  const sendMessage = async (conversationId: string, content: string, type: string = 'text', extra?: { mood?: string; unlock_at?: number; interactive_type?: string; interactive_data?: string }) => {
     if (!user) return;
 
     const messageId = crypto.randomUUID();
@@ -21,6 +21,10 @@ export function useChat() {
       content,
       type,
       status: 'sent',
+      mood: extra?.mood || null,
+      unlock_at: extra?.unlock_at || null,
+      interactive_type: extra?.interactive_type || null,
+      interactive_data: extra?.interactive_data || null,
       created_at: timestamp,
       isPending: !socketConnected
     };
@@ -35,6 +39,10 @@ export function useChat() {
         conversationId,
         content,
         type,
+        mood: extra?.mood || null,
+        unlock_at: extra?.unlock_at || null,
+        interactive_type: extra?.interactive_type || null,
+        interactive_data: extra?.interactive_data || null,
         created_at: timestamp
       });
     } else {
@@ -44,6 +52,10 @@ export function useChat() {
         sender_id: user.id,
         content,
         type,
+        mood: extra?.mood || null,
+        unlock_at: extra?.unlock_at || null,
+        interactive_type: extra?.interactive_type || null,
+        interactive_data: extra?.interactive_data || null,
         created_at: timestamp
       };
       enqueueOfflineMessage(offlineMsg);

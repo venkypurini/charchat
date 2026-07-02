@@ -62,6 +62,10 @@ export async function getDb(): Promise<Database> {
       content TEXT NOT NULL,
       type TEXT DEFAULT 'text',
       status TEXT DEFAULT 'sent', -- 'sent', 'delivered', 'read'
+      mood TEXT DEFAULT NULL,
+      unlock_at INTEGER DEFAULT NULL,
+      interactive_type TEXT DEFAULT NULL,
+      interactive_data TEXT DEFAULT NULL,
       created_at INTEGER NOT NULL,
       FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
       FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
@@ -103,6 +107,10 @@ export async function getDb(): Promise<Database> {
   `);
 
   await db.exec("ALTER TABLE users ADD COLUMN avatar_color TEXT DEFAULT '#128C7E';").catch(() => {});
+  await db.exec("ALTER TABLE messages ADD COLUMN mood TEXT DEFAULT NULL;").catch(() => {});
+  await db.exec("ALTER TABLE messages ADD COLUMN unlock_at INTEGER DEFAULT NULL;").catch(() => {});
+  await db.exec("ALTER TABLE messages ADD COLUMN interactive_type TEXT DEFAULT NULL;").catch(() => {});
+  await db.exec("ALTER TABLE messages ADD COLUMN interactive_data TEXT DEFAULT NULL;").catch(() => {});
 
   return db;
 }

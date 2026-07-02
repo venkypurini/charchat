@@ -30,6 +30,10 @@ export interface Message {
   content: string;
   type: string;
   status: 'sent' | 'delivered' | 'read';
+  mood?: string | null;
+  unlock_at?: number | null;
+  interactive_type?: string | null;
+  interactive_data?: string | null;
   created_at: number;
   isPending?: boolean; // True if sent offline and awaiting server response
 }
@@ -50,6 +54,10 @@ export interface OfflineMessage {
   sender_id: string;
   content: string;
   type: string;
+  mood?: string | null;
+  unlock_at?: number | null;
+  interactive_type?: string | null;
+  interactive_data?: string | null;
   created_at: number;
 }
 
@@ -64,6 +72,8 @@ interface ChatState {
   socketConnected: boolean;
   offlineQueue: OfflineMessage[];
   calls: Call[];
+  preferredLanguage: string;
+  smartSilentMode: boolean;
 
   // Actions
   setUser: (user: User | null, token: string | null) => void;
@@ -87,6 +97,8 @@ interface ChatState {
   setCalls: (calls: Call[]) => void;
   addCall: (call: Call) => void;
   deleteConversation: (id: string) => void;
+  setPreferredLanguage: (lang: string) => void;
+  setSmartSilentMode: (enabled: boolean) => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -100,6 +112,8 @@ export const useChatStore = create<ChatState>((set) => ({
   socketConnected: false,
   offlineQueue: JSON.parse(localStorage.getItem('chat_offline_queue') || '[]'),
   calls: [],
+  preferredLanguage: localStorage.getItem('chat_pref_lang') || 'en',
+  smartSilentMode: localStorage.getItem('chat_smart_silent') === 'true',
 
   setUser: (user, token) => {
     if (user && token) {
@@ -128,6 +142,16 @@ export const useChatStore = create<ChatState>((set) => ({
       offlineQueue: [],
       calls: [],
     });
+  },
+
+  setPreferredLanguage: (lang) => {
+    localStorage.setItem('chat_pref_lang', lang);
+    set({ preferredLanguage: lang });
+  },
+
+  setSmartSilentMode: (enabled) => {
+    localStorage.setItem('chat_smart_silent', String(enabled));
+    set({ smartSilentMode: enabled });
   },
 
   setCalls: (calls) => set({ calls }),

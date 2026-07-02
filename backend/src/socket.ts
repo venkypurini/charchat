@@ -67,9 +67,9 @@ export function setupSocket(io: Server) {
     socket.emit('online_users', onlineUsers.map((u) => u.id));
 
     // Handle incoming message
-    socket.on('message_send', async (data: { id: string; conversationId: string; content: string; type?: string; created_at?: number }, callback) => {
+    socket.on('message_send', async (data: { id: string; conversationId: string; content: string; type?: string; created_at?: number; mood?: string; unlock_at?: number; interactive_type?: string; interactive_data?: string }, callback) => {
       try {
-        const { id, conversationId, content, type = 'text', created_at = Date.now() } = data;
+        const { id, conversationId, content, type = 'text', created_at = Date.now(), mood = null, unlock_at = null, interactive_type = null, interactive_data = null } = data;
 
         // Prevent duplicate insertions
         const existing = await db.get('SELECT id FROM messages WHERE id = ?', [id]);
@@ -77,8 +77,8 @@ export function setupSocket(io: Server) {
         
         if (!existing) {
           await db.run(
-            'INSERT INTO messages (id, conversation_id, sender_id, content, type, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [id, conversationId, userId, content, type, 'sent', created_at]
+            'INSERT INTO messages (id, conversation_id, sender_id, content, type, status, mood, unlock_at, interactive_type, interactive_data, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [id, conversationId, userId, content, type, 'sent', mood, unlock_at, interactive_type, interactive_data, created_at]
           );
           
           savedMessage = {
@@ -88,10 +88,14 @@ export function setupSocket(io: Server) {
             content,
             type,
             status: 'sent',
+            mood,
+            unlock_at,
+            interactive_type,
+            interactive_data,
             created_at
           };
         } else {
-          savedMessage = await db.get('SELECT id, conversation_id, sender_id, content, type, status, created_at FROM messages WHERE id = ?', [id]);
+          savedMessage = await db.get('SELECT id, conversation_id, sender_id, content, type, status, mood, unlock_at, interactive_type, interactive_data, created_at FROM messages WHERE id = ?', [id]);
         }
 
         // Broadcast to all conversation members (including the sender's other tabs)
