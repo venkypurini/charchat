@@ -402,7 +402,7 @@ export default function Sidebar() {
   }, [searchQuery, savedContactsList]);
 
   return (
-    <div className="w-full md:w-96 flex flex-col h-full bg-slate-950 border-r border-slate-900 relative shrink-0">
+    <div className="w-full lg:w-96 flex flex-col h-full bg-slate-950 border-r border-slate-900 relative shrink-0">
       
       {/* CharChat Header */}
       <div className="bg-slate-900 border-b border-slate-800/80 text-white px-3 sm:px-4 pt-3 sm:pt-4 pb-1 shadow-md">

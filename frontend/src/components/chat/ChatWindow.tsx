@@ -135,12 +135,13 @@ export default function ChatWindow() {
       {/* Header */}
       <div className="p-3.5 bg-slate-900/90 border-b border-slate-800/80 backdrop-blur-md text-white flex items-center justify-between shrink-0 shadow-md z-10">
         <div className="flex items-center gap-3.5 min-w-0">
-          {/* Back button (Mobile only) */}
+          {/* Back button (Mobile & Tablet) */}
           <button 
             onClick={() => setActiveConversationId(null)}
-            className="md:hidden p-1.5 rounded-full hover:bg-slate-800 text-slate-300 hover:text-white cursor-pointer"
+            className="lg:hidden p-1.5 rounded-full hover:bg-slate-800 text-slate-300 hover:text-white cursor-pointer -ml-1 mr-1"
+            title="Back to Chats"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-6 h-6" />
           </button>
           
           <img 
