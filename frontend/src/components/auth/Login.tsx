@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '../../store/store';
 import api from '../../api';
-import { MessageSquare, Lock, User, Phone, AlertCircle, Loader2, KeyRound, Check } from 'lucide-react';
+import { MessageSquare, Lock, User, Phone, AlertCircle, Loader2, KeyRound, Check, Mail } from 'lucide-react';
 
 export default function Login() {
   const [username, setUsername] = useState('');
   const [mobile, setMobile] = useState('');
+  const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
-  const [step, setStep] = useState<1 | 2>(1); // Step 1: Username/Mobile, Step 2: Enter OTP
+  const [step, setStep] = useState<1 | 2>(1); // Step 1: Username/Mobile/Email, Step 2: Enter OTP
   
   const [mockOtp, setMockOtp] = useState<string | null>(null);
   const [smsSent, setSmsSent] = useState<boolean>(false);
@@ -28,22 +29,27 @@ export default function Login() {
 
   const handleGetOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim() || !mobile.trim()) {
-      setError('Please enter both username and your mobile number or email');
+    if (!username.trim() || !mobile.trim() || !email.trim()) {
+      setError('Please enter Username, 10-digit Mobile Number, and Email Address');
       return;
     }
 
     const isPhone = /^[0-9]{10}$/.test(mobile.trim());
-    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mobile.trim());
-    if (!isPhone && !isEmail) {
-      setError('Please enter a valid 10-digit mobile number or email address');
+    if (!isPhone) {
+      setError('Mobile number must be exactly 10 digits (e.g. 9876543210)');
+      return;
+    }
+
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+    if (!isEmail) {
+      setError('Please enter a valid email address (e.g. name@gmail.com)');
       return;
     }
 
     setError('');
     setLoading(true);
     try {
-      const response = await api.post('/auth/send-otp', { username, mobile });
+      const response = await api.post('/auth/send-otp', { username: username.trim(), mobile: mobile.trim(), email: email.trim() });
       if (response.data.success) {
         setMockOtp(response.data.otp);
         setSmsSent(response.data.smsSent || false);
@@ -68,7 +74,7 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      const response = await api.post('/auth/verify-otp', { username, mobile, otp });
+      const response = await api.post('/auth/verify-otp', { username: username.trim(), mobile: mobile.trim(), email: email.trim(), otp });
       setUser(response.data.user, response.data.token);
       navigate('/');
     } catch (err: any) {
@@ -161,14 +167,30 @@ export default function Login() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-teal-400 uppercase tracking-wider">Mobile Number or Email Address</label>
+              <label className="text-[11px] font-bold text-teal-400 uppercase tracking-wider">10-Digit Mobile Number</label>
               <div className="relative">
                 <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-450" />
                 <input
                   type="text"
                   value={mobile}
-                  onChange={(e) => setMobile(e.target.value.trim())}
-                  placeholder="e.g. 9876543210 or name@gmail.com"
+                  onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  placeholder="e.g. 9876543210"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-md border border-slate-800 bg-slate-950/80 text-white outline-none text-sm placeholder-zinc-500 focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/50 transition-all font-mono"
+                  disabled={loading}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-teal-400 uppercase tracking-wider">Attached Email Address</label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-450" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value.trim())}
+                  placeholder="e.g. name@gmail.com"
                   className="w-full pl-10 pr-4 py-2.5 rounded-md border border-slate-800 bg-slate-950/80 text-white outline-none text-sm placeholder-zinc-500 focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/50 transition-all"
                   disabled={loading}
                   required
@@ -178,7 +200,7 @@ export default function Login() {
 
             <button
               type="submit"
-              disabled={loading || !username.trim() || mobile.length !== 10}
+              disabled={loading || !username.trim() || mobile.length !== 10 || !email.trim()}
               className="w-full py-2.5 rounded-md bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-sm tracking-wider transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {loading ? (

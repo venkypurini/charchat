@@ -102,31 +102,57 @@ function generateInitialsAvatar(username: string, bgColor?: string): string {
 
 // Request OTP code
 router.post('/send-otp', async (req, res) => {
-  const { username, mobile } = req.body;
+  const { username, mobile, email } = req.body;
 
-  if (!username || !mobile) {
-    return res.status(400).json({ error: 'Username and mobile number / email are required' });
+  if (!username || !mobile || !email) {
+    return res.status(400).json({ error: 'Username, 10-digit mobile number, and email address are all required' });
   }
 
-  const isPhone = /^[0-9]{10}$/.test(mobile.trim());
-  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mobile.trim());
+  const cleanMobile = mobile.trim();
+  const cleanEmail = email.trim();
+  const cleanUsername = username.trim();
 
-  if (!isPhone && !isEmail) {
-    return res.status(400).json({ error: 'Please enter a valid 10-digit mobile number or email address' });
+  const isPhone = /^[0-9]{10}$/.test(cleanMobile);
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail);
+
+  if (!isPhone) {
+    return res.status(400).json({ error: 'Please enter a valid 10-digit mobile number (e.g. 9876543210)' });
+  }
+  if (!isEmail) {
+    return res.status(400).json({ error: 'Please enter a valid email address (e.g. name@gmail.com)' });
   }
 
   try {
     const db = await getDb();
 
-    // Check for username or mobile/email conflicts (Strict 1-to-1 rule)
-    const userByUsername = await db.get('SELECT mobile, email FROM users WHERE username = ?', [username]);
-    if (userByUsername && userByUsername.mobile !== mobile && userByUsername.email !== mobile) {
-      return res.status(400).json({ error: `Username "${username}" is already linked to a different mobile/email. One user can only log in with their 1 attached mobile number and 1 attached email!` });
+    // Check for existing mobile number
+    const existingByMobile = await db.get('SELECT username, mobile, email FROM users WHERE mobile = ?', [cleanMobile]);
+    if (existingByMobile) {
+      if (existingByMobile.username !== cleanUsername) {
+        return res.status(400).json({ error: `❌ Access Denied: Mobile number ${cleanMobile} is already registered to username "${existingByMobile.username}".` });
+      }
+      if (existingByMobile.email && existingByMobile.email !== cleanEmail) {
+        return res.status(400).json({ error: `❌ Access Denied: Mobile number ${cleanMobile} is permanently attached to email "${existingByMobile.email}". You cannot enter a different email address!` });
+      }
     }
 
-    const userByIdentifier = await db.get('SELECT username FROM users WHERE mobile = ? OR email = ?', [mobile, mobile]);
-    if (userByIdentifier && userByIdentifier.username !== username) {
-      return res.status(400).json({ error: `This mobile/email is already linked to username "${userByIdentifier.username}". One mobile number can only be linked to 1 single account!` });
+    // Check for existing email address
+    const existingByEmail = await db.get('SELECT username, mobile, email FROM users WHERE email = ?', [cleanEmail]);
+    if (existingByEmail) {
+      if (existingByEmail.username !== cleanUsername) {
+        return res.status(400).json({ error: `❌ Access Denied: Email address ${cleanEmail} is already registered to username "${existingByEmail.username}".` });
+      }
+      if (existingByEmail.mobile && existingByEmail.mobile !== cleanMobile) {
+        return res.status(400).json({ error: `❌ Access Denied: Email address ${cleanEmail} is permanently attached to mobile number "${existingByEmail.mobile}". You cannot enter a different mobile number!` });
+      }
+    }
+
+    // Check for existing username
+    const existingByUsername = await db.get('SELECT username, mobile, email FROM users WHERE username = ?', [cleanUsername]);
+    if (existingByUsername) {
+      if (existingByUsername.mobile !== cleanMobile || (existingByUsername.email && existingByUsername.email !== cleanEmail)) {
+        return res.status(400).json({ error: `❌ Access Denied: Username "${cleanUsername}" is attached to mobile "${existingByUsername.mobile}" and email "${existingByUsername.email || 'none'}". Your inputs did not match!` });
+      }
     }
 
     // Generate 6-digit OTP code
@@ -136,19 +162,17 @@ router.post('/send-otp', async (req, res) => {
     // Store OTP in database
     await db.run(
       'INSERT OR REPLACE INTO otps (mobile, otp, expires_at) VALUES (?, ?, ?)',
-      [mobile, otp, expiresAt]
+      [cleanMobile, otp, expiresAt]
     );
 
     let smsSent = false;
-    let smsProvider = isEmail ? 'Mock Email Gateway' : 'Mock SMS Gateway (Free Mode)';
+    let smsProvider = 'Mock SMS Gateway';
 
-    // 0. If input is an Email Address, send Real Email OTP!
-    if (isEmail) {
-      const emailSent = await sendEmailOtp(mobile.trim(), otp);
-      if (emailSent) {
-        smsSent = true;
-        smsProvider = 'Email Inbox';
-      }
+    // 0. Send Real Email OTP to their attached email address!
+    const emailSent = await sendEmailOtp(cleanEmail, otp);
+    if (emailSent) {
+      smsSent = true;
+      smsProvider = 'Email Inbox & SMS';
     }
     // 1. Try Fast2SMS (Popular & Affordable in India/Asia)
     if (process.env.FAST2SMS_API_KEY) {
@@ -262,16 +286,20 @@ router.post('/send-otp', async (req, res) => {
 
 // Verify OTP & Register/Login
 router.post('/verify-otp', async (req, res) => {
-  const { username, mobile, otp } = req.body;
+  const { username, mobile, email, otp } = req.body;
 
-  if (!username || !mobile || !otp) {
-    return res.status(400).json({ error: 'Username, mobile, and OTP code are required' });
+  if (!username || !mobile || !email || !otp) {
+    return res.status(400).json({ error: 'Username, mobile number, email address, and OTP code are required' });
   }
+
+  const cleanMobile = mobile.trim();
+  const cleanEmail = email.trim();
+  const cleanUsername = username.trim();
 
   try {
     const db = await getDb();
 
-    const otpData = await db.get('SELECT * FROM otps WHERE mobile = ?', [mobile]);
+    const otpData = await db.get('SELECT * FROM otps WHERE mobile = ?', [cleanMobile]);
 
     if (!otpData) {
       return res.status(400).json({ error: 'No OTP requested for this mobile number' });
@@ -286,37 +314,36 @@ router.post('/verify-otp', async (req, res) => {
     }
 
     // OTP is valid
-    await db.run('DELETE FROM otps WHERE mobile = ?', [mobile]);
+    await db.run('DELETE FROM otps WHERE mobile = ?', [cleanMobile]);
 
-    // Check if user exists (by mobile or email)
-    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mobile.trim());
-    let user = await db.get('SELECT * FROM users WHERE mobile = ? OR email = ?', [mobile, mobile]);
+    // Check if user exists (by mobile)
+    let user = await db.get('SELECT * FROM users WHERE mobile = ?', [cleanMobile]);
     const timestamp = Date.now();
 
     if (!user) {
       const userId = crypto.randomUUID();
       const defaultColor = '#128C7E';
-      const defaultAvatar = generateInitialsAvatar(username, defaultColor);
+      const defaultAvatar = generateInitialsAvatar(cleanUsername, defaultColor);
 
       await db.run(
         'INSERT INTO users (id, username, mobile, email, avatar_url, avatar_color, status, last_seen) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [userId, username, mobile, isEmail ? mobile : null, defaultAvatar, defaultColor, 'offline', timestamp]
+        [userId, cleanUsername, cleanMobile, cleanEmail, defaultAvatar, defaultColor, 'offline', timestamp]
       );
 
       user = {
         id: userId,
-        username,
-        mobile,
-        email: isEmail ? mobile : null,
+        username: cleanUsername,
+        mobile: cleanMobile,
+        email: cleanEmail,
         avatar_url: defaultAvatar,
         avatar_color: defaultColor,
         status: 'offline',
         last_seen: timestamp
       };
     } else {
-      if (isEmail && !user.email) {
-        await db.run('UPDATE users SET email = ? WHERE id = ?', [mobile, user.id]);
-        user.email = mobile;
+      if (!user.email || user.email !== cleanEmail) {
+        await db.run('UPDATE users SET email = ? WHERE id = ?', [cleanEmail, user.id]);
+        user.email = cleanEmail;
       }
     }
 
