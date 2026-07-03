@@ -10,8 +10,10 @@ const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_chat_jwt_key_2026';
 
 async function sendEmailOtp(email: string, otp: string): Promise<boolean> {
+  const resendKey = process.env.RESEND_API_KEY || 're_joFvUFow_EmAXFPuNFyF32YLUDwwFNkWq';
+
   // 1. Try Resend API (Free 3,000 emails/month, super popular)
-  if (process.env.RESEND_API_KEY) {
+  if (resendKey) {
     try {
       await axios.post('https://api.resend.com/emails', {
         from: process.env.EMAIL_FROM || 'CharChat <onboarding@resend.dev>',
@@ -20,7 +22,7 @@ async function sendEmailOtp(email: string, otp: string): Promise<boolean> {
         html: `<div style="font-family: 'Inter', Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #0f172a; color: #f8fafc; padding: 28px; border-radius: 16px; border: 1px solid #1e293b;"><h2 style="color: #2dd4bf; margin-top: 0;">CharChat Login Verification</h2><p style="color: #cbd5e1; font-size: 14px;">Here is your secure 6-digit verification code:</p><div style="font-size: 30px; font-weight: 800; letter-spacing: 6px; color: #2dd4bf; background: #1e293b; padding: 12px 24px; border-radius: 10px; display: inline-block; font-family: monospace; border: 1px solid #334155;">${otp}</div><p style="color: #64748b; font-size: 12px; margin-top: 20px;">Valid for exactly 5 minutes. Do not share this code with anyone.</p></div>`
       }, {
         headers: {
-          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+          'Authorization': `Bearer ${resendKey}`,
           'Content-Type': 'application/json'
         }
       });
