@@ -221,6 +221,28 @@ router.post('/send-otp', async (req, res) => {
       }
     }
 
+    // 5. Try Textbelt Free API (1 Free SMS per day without API key!)
+    if (!smsSent && (!process.env.SMS_PROVIDER || process.env.SMS_PROVIDER === 'textbelt')) {
+      try {
+        const countryCode = process.env.DEFAULT_COUNTRY_CODE || '+91';
+        const formattedMobile = mobile.startsWith('+') ? mobile : (mobile.length === 10 ? `${countryCode}${mobile}` : mobile);
+        const tbResponse = await axios.post('https://textbelt.com/text', {
+          phone: formattedMobile,
+          message: `Your CharChat verification code is: ${otp}`,
+          key: process.env.TEXTBELT_KEY || 'textbelt'
+        });
+        if (tbResponse.data && tbResponse.data.success) {
+          smsSent = true;
+          smsProvider = 'Textbelt (Free SMS)';
+          console.log(`[REAL SMS] Sent Textbelt OTP ${otp} to ${formattedMobile}`);
+        } else {
+          console.log('Textbelt fallback notice:', tbResponse.data?.error || 'Quota exceeded');
+        }
+      } catch (tbErr: any) {
+        console.error('Textbelt error:', tbErr?.message || tbErr);
+      }
+    }
+
     if (!smsSent) {
       console.log(`[MOCK SMS] Sent OTP ${otp} to mobile ${mobile}`);
     }
