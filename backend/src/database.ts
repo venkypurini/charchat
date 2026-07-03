@@ -42,9 +42,15 @@ export async function getDb(): Promise<Database> {
   `);
 
   try {
-    await db.exec('ALTER TABLE users ADD COLUMN email TEXT UNIQUE;');
+    await db.exec('ALTER TABLE users ADD COLUMN email TEXT;');
   } catch (e) {
     // Column already exists, ignore
+  }
+
+  try {
+    await db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL;');
+  } catch (e) {
+    // Ignore if fails
   }
 
   await db.exec(`

@@ -232,9 +232,9 @@ router.post('/send-otp', async (req, res) => {
       smsSent,
       smsProvider
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Send OTP error:', error);
-    return res.status(500).json({ error: 'Failed to send OTP code' });
+    return res.status(500).json({ error: error?.message || 'Failed to send OTP code' });
   }
 });
 
